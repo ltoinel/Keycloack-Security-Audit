@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   compareVersions,
   satisfiesRange,
-} from "../src/checks/external/semver.js";
+} from "../src/checks/blackbox/semver.js";
 
 test("compareVersions orders correctly", () => {
   assert.equal(compareVersions("26.0.5", "22.0.10"), 1);

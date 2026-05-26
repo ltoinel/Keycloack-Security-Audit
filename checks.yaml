@@ -21,6 +21,7 @@ modules:
   users: true
   tls: true
   headers: true
+  cookies: true
   endpoints: true
   well-known: true
   version: true
@@ -91,6 +92,71 @@ checks:
     recommendation: "Keep a restrictive CSP (frame-ancestors 'self') to limit clickjacking."
     references:
       - https://www.keycloak.org/docs/latest/server_admin/
+  realm.brute-force-tuning:
+    enabled: true
+    category: Realm
+    title: Brute-force tuning
+    recommendation: Use a failureFactor of about 5 to 10 and configure the wait/lockout settings.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.password-hashing:
+    enabled: true
+    category: Realm
+    title: Password hashing strength
+    recommendation: "Use argon2, or pbkdf2-sha512 (>= 210000) / pbkdf2-sha256 (>= 600000) iterations."
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.sso-session-idle:
+    enabled: true
+    category: Realm
+    title: SSO session idle timeout
+    recommendation: Keep the SSO session idle timeout short (e.g. <= 30 min) to shrink hijacked-session windows.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.sso-session-max:
+    enabled: true
+    category: Realm
+    title: SSO session max lifespan
+    recommendation: Cap the SSO session max lifespan (e.g. <= 10h) and require re-authentication afterwards.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.offline-session:
+    enabled: true
+    category: Realm
+    title: Offline session lifespan
+    recommendation: Enable offlineSessionMaxLifespan so offline tokens expire by absolute lifetime, not only on idle.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.otp-policy:
+    enabled: true
+    category: Realm
+    title: OTP policy
+    recommendation: Use TOTP with at least 6 digits; review the period and algorithm for your authenticators.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.webauthn-policy:
+    enabled: true
+    category: Realm
+    title: WebAuthn policy
+    recommendation: For passwordless/strong MFA, require user verification and a sound attestation policy.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+
+  # --- Auditing -------------------------------------------------------------
+  realm.login-events:
+    enabled: true
+    category: Auditing
+    title: Login event logging
+    recommendation: Enable login event logging and forward events to a SIEM via an event listener.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.admin-events:
+    enabled: true
+    category: Auditing
+    title: Admin event logging
+    recommendation: Enable admin event logging (with details) to audit configuration changes.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
 
   # --- Clients --------------------------------------------------------------
   client.implicit-flow:
@@ -135,6 +201,34 @@ checks:
     recommendation: "Restrict Web Origins to the application's domains."
     references:
       - https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients
+  client.full-scope:
+    enabled: true
+    category: Clients
+    title: Full scope allowed
+    recommendation: Disable fullScopeAllowed and grant only the client scopes/roles the client needs.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients
+  client.consent:
+    enabled: true
+    category: Clients
+    title: Consent not required
+    recommendation: Require consent for third-party clients so users approve the requested scopes.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients
+  client.base-url-http:
+    enabled: true
+    category: Clients
+    title: Non-TLS client URL
+    recommendation: Use https for the client root/base/admin URLs (http is acceptable only for localhost).
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients
+  client.master-realm:
+    enabled: true
+    category: Clients
+    title: Application client in master realm
+    recommendation: Keep the master realm for administration only; host applications in a dedicated realm.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
   client.ok:
     enabled: true
     category: Clients
@@ -257,6 +351,27 @@ checks:
     recommendation: Set a Referrer-Policy (e.g. no-referrer or strict-origin).
     header: referrer-policy
     severity: low
+
+  # --- Cookies --------------------------------------------------------------
+  cookies.fetch:
+    enabled: true
+    category: Cookies
+    title: Cookie inspection
+  cookies.secure:
+    enabled: true
+    category: Cookies
+    title: Cookie Secure flag
+    recommendation: Serve all session cookies with the Secure attribute (requires HTTPS / sslRequired).
+  cookies.http-only:
+    enabled: true
+    category: Cookies
+    title: Cookie HttpOnly flag
+    recommendation: Set HttpOnly on session cookies to block JavaScript access.
+  cookies.same-site:
+    enabled: true
+    category: Cookies
+    title: Cookie SameSite attribute
+    recommendation: Set SameSite (Lax or Strict) on session cookies to mitigate CSRF.
 
   # --- Exposed endpoints ----------------------------------------------------
   endpoint.metrics:

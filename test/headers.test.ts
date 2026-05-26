@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { meetsExpectation } from "../src/checks/external/headers.js";
+import { meetsExpectation } from "../src/checks/blackbox/headers.js";
 
 test("meetsExpectation: no expectation means presence is enough", () => {
   assert.equal(meetsExpectation("anything"), true);

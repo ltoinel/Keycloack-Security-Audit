@@ -1,5 +1,5 @@
-import type { Check, Finding } from "../types.js";
-import { finding } from "./helpers.js";
+import type { Check, Finding } from "../../types.js";
+import { finding } from "../helpers.js";
 
 interface KeyRep {
   algorithm?: string;

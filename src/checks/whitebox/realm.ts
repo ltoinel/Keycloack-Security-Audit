@@ -1,15 +1,20 @@
-import type { Check, Finding } from "../types.js";
-import { finding, parsePasswordPolicy } from "./helpers.js";
+import type { Check, Finding } from "../../types.js";
+import { finding, parsePasswordPolicy } from "../helpers.js";
 
 interface RealmRep {
   realm: string;
   sslRequired?: string;
   bruteForceProtected?: boolean;
   failureFactor?: number;
+  permanentLockout?: boolean;
+  maxFailureWaitSeconds?: number;
   passwordPolicy?: string;
   accessTokenLifespan?: number;
   ssoSessionIdleTimeout?: number;
   ssoSessionMaxLifespan?: number;
+  offlineSessionIdleTimeout?: number;
+  offlineSessionMaxLifespanEnabled?: boolean;
+  offlineSessionMaxLifespan?: number;
   revokeRefreshToken?: boolean;
   registrationAllowed?: boolean;
   resetPasswordAllowed?: boolean;
@@ -17,6 +22,17 @@ interface RealmRep {
   loginWithEmailAllowed?: boolean;
   duplicateEmailsAllowed?: boolean;
   editUsernameAllowed?: boolean;
+  eventsEnabled?: boolean;
+  eventsListeners?: string[];
+  adminEventsEnabled?: boolean;
+  adminEventsDetailsEnabled?: boolean;
+  otpPolicyType?: string;
+  otpPolicyAlgorithm?: string;
+  otpPolicyDigits?: number;
+  otpPolicyPeriod?: number;
+  webAuthnPolicyUserVerificationRequirement?: string;
+  webAuthnPolicyAttestationConveyancePreference?: string;
+  webAuthnPolicySignatureAlgorithms?: string[];
   browserSecurityHeaders?: Record<string, string>;
 }
 
@@ -130,6 +146,124 @@ export const realmCheck: Check = {
             ? "pass"
             : "warn",
         detail: `contentSecurityPolicy = "${csp || "(empty)"}".`,
+      }),
+    );
+
+    // --- Brute-force tuning (only when protection is on) ------------------
+    if (realm.bruteForceProtected) {
+      const ff = realm.failureFactor ?? 0;
+      out.push(
+        finding("realm.brute-force-tuning", {
+          resource: realm.realm,
+          severity: "medium",
+          status: ff >= 1 && ff <= 10 ? "pass" : "warn",
+          detail: `failureFactor=${ff}, permanentLockout=${Boolean(
+            realm.permanentLockout,
+          )}, maxFailureWaitSeconds=${realm.maxFailureWaitSeconds ?? "?"}s.`,
+        }),
+      );
+    }
+
+    // --- Password hashing strength ---------------------------------------
+    const hashAlg = policy.get("hashAlgorithm");
+    const hashIter = Number(policy.get("hashIterations") ?? 0);
+    const strongHash =
+      hashAlg === "argon2" ||
+      (hashAlg === "pbkdf2-sha512" && hashIter >= 210000) ||
+      (hashAlg === "pbkdf2-sha256" && hashIter >= 600000);
+    out.push(
+      finding("realm.password-hashing", {
+        resource: realm.realm,
+        severity: strongHash ? "low" : "medium",
+        status: strongHash ? "pass" : "warn",
+        detail: hashAlg
+          ? `hashAlgorithm=${hashAlg}, hashIterations=${hashIter || "(default)"}.`
+          : "No explicit hashAlgorithm/hashIterations set; relying on the server default.",
+      }),
+    );
+
+    // --- SSO session idle timeout ----------------------------------------
+    const ssoIdle = realm.ssoSessionIdleTimeout ?? 0;
+    out.push(
+      finding("realm.sso-session-idle", {
+        resource: realm.realm,
+        severity: "medium",
+        status: ssoIdle > 0 && ssoIdle <= 1800 ? "pass" : "warn",
+        detail: `ssoSessionIdleTimeout = ${ssoIdle}s.`,
+      }),
+    );
+
+    // --- SSO session max lifespan ----------------------------------------
+    const ssoMax = realm.ssoSessionMaxLifespan ?? 0;
+    out.push(
+      finding("realm.sso-session-max", {
+        resource: realm.realm,
+        severity: "medium",
+        status: ssoMax > 0 && ssoMax <= 36000 ? "pass" : "warn",
+        detail: `ssoSessionMaxLifespan = ${ssoMax}s.`,
+      }),
+    );
+
+    // --- Offline session lifespan ----------------------------------------
+    const offlineCapped = realm.offlineSessionMaxLifespanEnabled === true;
+    out.push(
+      finding("realm.offline-session", {
+        resource: realm.realm,
+        severity: "low",
+        status: offlineCapped ? "pass" : "warn",
+        detail: offlineCapped
+          ? `Offline session capped (offlineSessionMaxLifespan=${realm.offlineSessionMaxLifespan ?? "?"}s, idle=${realm.offlineSessionIdleTimeout ?? "?"}s).`
+          : `offlineSessionMaxLifespanEnabled = false: offline tokens expire only on idle (${realm.offlineSessionIdleTimeout ?? "?"}s), not by absolute lifetime.`,
+      }),
+    );
+
+    // --- Login event logging ---------------------------------------------
+    out.push(
+      finding("realm.login-events", {
+        resource: realm.realm,
+        severity: "medium",
+        status: realm.eventsEnabled ? "pass" : "warn",
+        detail: realm.eventsEnabled
+          ? `Login event logging enabled${
+              realm.eventsListeners?.length
+                ? ` (listeners: ${realm.eventsListeners.join(", ")})`
+                : ""
+            }.`
+          : "eventsEnabled = false: login events are not recorded.",
+      }),
+    );
+
+    // --- Admin event logging ---------------------------------------------
+    out.push(
+      finding("realm.admin-events", {
+        resource: realm.realm,
+        severity: "medium",
+        status: realm.adminEventsEnabled ? "pass" : "warn",
+        detail: realm.adminEventsEnabled
+          ? `Admin event logging enabled${realm.adminEventsDetailsEnabled ? " (with details)" : ""}.`
+          : "adminEventsEnabled = false: administrative changes are not audited.",
+      }),
+    );
+
+    // --- OTP policy -------------------------------------------------------
+    const otpDigits = realm.otpPolicyDigits ?? 6;
+    out.push(
+      finding("realm.otp-policy", {
+        resource: realm.realm,
+        severity: "low",
+        status: otpDigits >= 6 ? "pass" : "warn",
+        detail: `OTP: type=${realm.otpPolicyType ?? "totp"}, algorithm=${realm.otpPolicyAlgorithm ?? "?"}, digits=${otpDigits}, period=${realm.otpPolicyPeriod ?? "?"}s.`,
+      }),
+    );
+
+    // --- WebAuthn policy --------------------------------------------------
+    const uv = realm.webAuthnPolicyUserVerificationRequirement;
+    out.push(
+      finding("realm.webauthn-policy", {
+        resource: realm.realm,
+        severity: "low",
+        status: uv === "discouraged" ? "warn" : "pass",
+        detail: `WebAuthn: userVerification=${uv ?? "(default)"}, attestation=${realm.webAuthnPolicyAttestationConveyancePreference ?? "(default)"}.`,
       }),
     );
 

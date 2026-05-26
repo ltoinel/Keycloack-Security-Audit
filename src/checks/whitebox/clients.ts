@@ -1,5 +1,5 @@
-import type { Check, Finding } from "../types.js";
-import { finding, dangerousRedirectUris } from "./helpers.js";
+import type { Check, Finding } from "../../types.js";
+import { finding, dangerousRedirectUris } from "../helpers.js";
 
 interface ClientRep {
   id: string;
@@ -11,10 +11,24 @@ interface ClientRep {
   implicitFlowEnabled?: boolean;
   directAccessGrantsEnabled?: boolean;
   serviceAccountsEnabled?: boolean;
+  fullScopeAllowed?: boolean;
+  consentRequired?: boolean;
+  rootUrl?: string;
+  baseUrl?: string;
+  adminUrl?: string;
   redirectUris?: string[];
   webOrigins?: string[];
   attributes?: Record<string, string>;
 }
+
+/** Built-in clients always present in a realm (and the per-realm `*-realm` clients). */
+const DEFAULT_MASTER_CLIENTS = new Set([
+  "account",
+  "account-console",
+  "admin-cli",
+  "broker",
+  "security-admin-console",
+]);
 
 export const clientsCheck: Check = {
   name: "clients",
@@ -103,6 +117,48 @@ export const clientsCheck: Check = {
           }),
         );
       }
+
+      // --- Full scope (over-privileged tokens) ---------------------------
+      if (c.fullScopeAllowed) {
+        out.push(
+          finding("client.full-scope", {
+            resource: c.clientId,
+            severity: "medium",
+            status: "warn",
+            detail: `Client "${c.clientId}" has fullScopeAllowed = true: its tokens carry every realm role.`,
+          }),
+        );
+      }
+
+      // --- Consent for user-facing public clients ------------------------
+      if (c.publicClient && c.standardFlowEnabled && c.consentRequired === false) {
+        out.push(
+          finding("client.consent", {
+            resource: c.clientId,
+            severity: "low",
+            status: "warn",
+            detail: `Public client "${c.clientId}" does not require consent (review for third-party clients).`,
+          }),
+        );
+      }
+
+      // --- Non-TLS root/base/admin URL -----------------------------------
+      const httpUrls = [c.rootUrl, c.baseUrl, c.adminUrl].filter(
+        (u): u is string =>
+          !!u &&
+          /^http:\/\//i.test(u) &&
+          !/^http:\/\/(localhost|127\.0\.0\.1)/i.test(u),
+      );
+      if (httpUrls.length) {
+        out.push(
+          finding("client.base-url-http", {
+            resource: c.clientId,
+            severity: "low",
+            status: "warn",
+            detail: `Client "${c.clientId}" uses non-TLS URL(s): ${httpUrls.join(", ")}.`,
+          }),
+        );
+      }
     }
 
     if (out.length === 0) {
@@ -113,6 +169,27 @@ export const clientsCheck: Check = {
           detail: `${clients.length} client(s) analyzed, no major configuration issue detected.`,
         }),
       );
+    }
+
+    // --- Master realm used for application clients (anti-pattern) --------
+    if (ctx.realm === "master") {
+      const apps = clients.filter(
+        (c) =>
+          !DEFAULT_MASTER_CLIENTS.has(c.clientId) && !c.clientId.endsWith("-realm"),
+      );
+      if (apps.length) {
+        out.push(
+          finding("client.master-realm", {
+            resource: "master",
+            severity: "medium",
+            status: "warn",
+            detail: `Master realm hosts ${apps.length} application client(s): ${apps
+              .slice(0, 8)
+              .map((c) => c.clientId)
+              .join(", ")}${apps.length > 8 ? "…" : ""}. Use a dedicated realm for applications.`,
+          }),
+        );
+      }
     }
 
     return out;

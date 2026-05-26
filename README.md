@@ -102,17 +102,21 @@ npm test   # native Node runner, no dependencies: semver, redirect URIs, passwor
 
 ## Implemented checks
 
-**White-box** (`src/checks/`): SSL required, brute-force, password policy,
-token lifespan, refresh token rotation, self-registration, email verification,
-realm CSP · Implicit flow, ROPC, PKCE, redirect URIs, Web Origins CORS, service accounts
-on public clients · signing algorithm, key presence/rotation · predictable admin
-accounts, MFA coverage (OTP **and** WebAuthn/passkey, sampled), disabled accounts.
+**White-box** (`src/checks/whitebox/`): SSL required, brute-force (on/off **and** tuning),
+password policy, password hashing strength, token lifespan, refresh token rotation,
+SSO/offline session lifespans, self-registration, email verification, realm CSP,
+OTP & WebAuthn policy, login & admin event logging (auditing) · Implicit flow, ROPC, PKCE,
+redirect URIs, Web Origins CORS, service accounts on public clients, full-scope tokens,
+consent, non-TLS client URLs, application clients in the master realm · signing algorithm,
+key presence/rotation · predictable admin accounts, MFA coverage (OTP **and**
+WebAuthn/passkey, sampled), disabled accounts.
 
-**Black-box** (`src/checks/external/`): TLS version/protocol, certificate validity and
+**Black-box** (`src/checks/blackbox/`): TLS version/protocol, certificate validity and
 expiry, HSTS / X-Frame-Options / X-Content-Type-Options / CSP / Referrer-Policy,
-exposed `/metrics` and `/health` endpoints (also probed on the **management port 9000**),
-admin console reachability, OIDC discovery (`alg none`, PKCE, implicit), passive version
-detection, **CVE correlation** (GitHub Security Advisories, paginated).
+session cookie flags (Secure / HttpOnly / SameSite), exposed `/metrics` and `/health`
+endpoints (also probed on the **management port 9000**), admin console reachability,
+OIDC discovery (`alg none`, PKCE, implicit), passive version detection,
+**CVE correlation** (GitHub Security Advisories, paginated).
 
 ## Customizing checks (`checks.yaml`)
 
@@ -176,9 +180,22 @@ per finding and a `byRisk` / `risk` breakdown in the summary.
 
 ## Architecture
 
+Checks are organized by family:
+
+```
+src/checks/
+  whitebox/   realm, clients, keys, users          # Admin API configuration
+  blackbox/   tls, headers, cookies, endpoints,     # external, no credentials
+              wellKnown, version, cve
+  registry.ts  loads checks.yaml (text + enable/disable)
+  helpers.ts   the finding() factory
+  index.ts     the check registry
+```
+
 Each check implements the `Check` interface (`src/types.ts`) and returns `Finding[]`.
-To add a check: create a file in `src/checks/`, export a `Check`, and register it in
-`src/checks/index.ts`. No other change is needed.
+To add a check: create a file under `src/checks/whitebox/` or `src/checks/blackbox/`,
+export a `Check`, register it in `src/checks/index.ts`, and add its text entry in
+`checks.yaml`. No other change is needed.
 
 ## Limitations
 
