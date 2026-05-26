@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "description": "Security audit tool for Keycloak servers (configuration analysis via the Admin API + external black-box tests).",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ltoinel/Keycloack-Security-Audit.git"
+  },
+  "homepage": "https://github.com/ltoinel/Keycloack-Security-Audit#readme",
+  "bugs": {
+    "url": "https://github.com/ltoinel/Keycloack-Security-Audit/issues"
+  },
   "bin": {
     "keycloak-security-audit": "./dist/index.js"
   },

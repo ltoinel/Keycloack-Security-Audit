@@ -81,7 +81,7 @@ export function renderSarif(findings: Finding[], meta: ReportMeta): string {
         tool: {
           driver: {
             name: "keycloak-security-audit",
-            informationUri: "https://github.com/keycloak/keycloak",
+            informationUri: "https://github.com/ltoinel/Keycloack-Security-Audit",
             version: "0.1.0",
             rules,
           },
