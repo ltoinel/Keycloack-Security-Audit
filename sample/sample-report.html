@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keycloak Security Audit — master</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #eceef3;
+    --surface: #ffffff;
+    --surface-2: #f6f7f9;
+    --ink: #10172a;
+    --ink-soft: #44506a;
+    --ink-faint: #8b95ab;
+    --line: #e3e7ef;
+    --brand: #3b48d9;
+    --score: #d97706;
+    --radius: 16px;
+    --shadow: 0 1px 2px rgba(16,23,42,.04), 0 8px 24px -12px rgba(16,23,42,.12);
+    --shadow-lift: 0 1px 2px rgba(16,23,42,.05), 0 18px 40px -16px rgba(16,23,42,.22);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 24px 96px; }
+
+  /* ---- Hero ---------------------------------------------------------- */
+  .hero {
+    position: relative; overflow: hidden;
+    background:
+      radial-gradient(120% 140% at 12% -10%, #1c2547 0%, #141b35 42%, #0e1428 100%);
+    color: #e8ecf6;
+    border-bottom: 1px solid #0c1124;
+  }
+  .hero::before {
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+    background-size: 34px 34px;
+    -webkit-mask-image: radial-gradient(120% 100% at 70% 0%, #000 30%, transparent 78%);
+            mask-image: radial-gradient(120% 100% at 70% 0%, #000 30%, transparent 78%);
+  }
+  .hero::after {
+    content: ""; position: absolute; right: -120px; top: -120px;
+    width: 380px; height: 380px; border-radius: 50%;
+    background: radial-gradient(circle, #d9770633 0%, transparent 68%);
+    filter: blur(8px);
+  }
+  .hero-inner {
+    position: relative; max-width: 1000px; margin: 0 auto; padding: 40px 24px 48px;
+    display: flex; gap: 40px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  }
+  .brand-row { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+  .brand-mark {
+    width: 38px; height: 38px; flex: 0 0 auto; border-radius: 10px;
+    display: grid; place-items: center;
+    background: linear-gradient(150deg, #4654ee, #2a32a8);
+    box-shadow: 0 6px 18px -6px #4654eeaa, inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .brand-mark svg { width: 20px; height: 20px; fill: none; stroke: #fff; stroke-width: 1.8; }
+  .brand-name { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #aab4d4; font-weight: 600; }
+  h1 {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 700; font-size: clamp(30px, 4.4vw, 46px); line-height: 1.02;
+    margin: 0 0 18px; letter-spacing: -.02em;
+    color: #f3f6ff;
+  }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .meta .pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+    padding: 6px 11px; border-radius: 999px; font-size: 13px; color: #c8d0e6;
+  }
+  .meta .pill b { color: #fff; font-weight: 600; }
+  .meta .pill .k { color: #8b96b8; font-size: 11px; text-transform: uppercase; letter-spacing: .07em; }
+
+  /* ---- Gauge --------------------------------------------------------- */
+  .gauge { position: relative; flex: 0 0 auto; width: 188px; height: 188px; }
+  .gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .gauge .track { fill: none; stroke: rgba(255,255,255,.1); stroke-width: 13; }
+  .gauge .prog {
+    fill: none; stroke: var(--score); stroke-width: 13; stroke-linecap: round;
+    stroke-dasharray: 339.29;
+    stroke-dashoffset: 339.29;
+    animation: gauge 1.5s cubic-bezier(.22,.8,.24,1) .15s forwards;
+    filter: drop-shadow(0 0 8px #d9770666);
+  }
+  @keyframes gauge { to { stroke-dashoffset: 115.36; } }
+  .gauge-center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .gauge-num { font-family: "Bricolage Grotesque", sans-serif; font-size: 52px; font-weight: 700; line-height: 1; color: #fff; }
+  .gauge-den { font-size: 13px; color: #97a1c0; margin-top: 2px; }
+  .gauge-lbl {
+    margin-top: 8px; font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--score);
+  }
+
+  /* ---- Summary panel ------------------------------------------------- */
+  .panel {
+    margin-top: -28px; position: relative; z-index: 2;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 22px 24px;
+    display: grid; grid-template-columns: 1.4fr 1fr; gap: 28px;
+  }
+  .panel h4 { margin: 0 0 12px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; }
+  .bar { display: flex; height: 13px; border-radius: 999px; overflow: hidden; background: #eef0f5; }
+  .bar-seg { height: 100%; }
+  .bar-empty { width: 100%; background: linear-gradient(90deg, #16a34a, #22c55e); }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; font-size: 13px; color: var(--ink-soft); }
+  .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+  .legend-item b { color: var(--ink); font-weight: 600; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; align-content: start; }
+  .stat { background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px; }
+  .stat-val { display: block; font-family: "Bricolage Grotesque", sans-serif; font-size: 26px; font-weight: 700; line-height: 1; }
+  .stat-lbl { display: block; margin-top: 4px; font-size: 12px; color: var(--ink-soft); }
+  .risk-total { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+  .rt-num { font-family: "Bricolage Grotesque", sans-serif; font-size: 34px; font-weight: 700; line-height: 1; color: var(--ink); }
+  .rt-lbl { font-size: 12px; color: var(--ink-soft); line-height: 1.35; }
+  .rt-sub { display: block; color: var(--ink-faint); font-size: 11px; }
+
+  /* ---- Top risks ----------------------------------------------------- */
+  .toprisks { margin-top: 24px; }
+  .toprisks h4 { margin: 0 0 12px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; }
+  .tr-list { display: flex; flex-direction: column; gap: 8px; }
+  .tr-item {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 11px 16px 11px 12px; box-shadow: var(--shadow);
+    border-left: 4px solid var(--c);
+  }
+  .tr-rank { font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: 15px; color: var(--ink-faint); width: 18px; text-align: center; flex: 0 0 auto; }
+  .tr-main { flex: 1 1 auto; min-width: 0; }
+  .tr-title { display: block; font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tr-cat { display: block; font-size: 12px; color: var(--ink-faint); }
+  .tr-badge { flex: 0 0 auto; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--c); }
+  .tr-score { flex: 0 0 auto; font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; font-size: 18px; color: var(--c); min-width: 28px; text-align: right; }
+
+  /* ---- Toolbar ------------------------------------------------------- */
+  .toolbar {
+    position: sticky; top: 0; z-index: 5; margin: 26px 0 6px;
+    display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 0;
+    background: linear-gradient(var(--bg) 70%, transparent);
+  }
+  .chip {
+    font: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--line); color: var(--ink-soft);
+    padding: 7px 14px; border-radius: 999px; font-size: 13.5px; font-weight: 500;
+    transition: all .15s ease;
+  }
+  .chip:hover { border-color: #c6cde0; color: var(--ink); }
+  .chip.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .chip-count {
+    font-size: 12px; font-weight: 600; background: var(--surface-2); color: var(--ink-soft);
+    padding: 1px 8px; border-radius: 999px; min-width: 22px; text-align: center;
+  }
+  .chip.active .chip-count { background: rgba(255,255,255,.18); color: #fff; }
+
+  /* ---- Sections & cards ---------------------------------------------- */
+  .cat { margin-top: 30px; }
+  .cat-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .cat-head h2 {
+    font-family: "Bricolage Grotesque", sans-serif; font-weight: 600; font-size: 19px;
+    margin: 0; letter-spacing: -.01em;
+  }
+  .cat-count {
+    font-size: 12px; font-weight: 600; color: var(--ink-soft);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px;
+  }
+  .cards { display: flex; flex-direction: column; gap: 12px; }
+  .finding {
+    position: relative; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 16px 18px 16px 22px; box-shadow: var(--shadow);
+    transition: transform .18s ease, box-shadow .18s ease;
+    animation: rise .5s ease backwards;
+  }
+  .finding::before {
+    content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px;
+    border-radius: 0 4px 4px 0; background: var(--accent);
+  }
+  .finding:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+  .f-top { display: flex; align-items: center; gap: 12px; }
+  .badge {
+    flex: 0 0 auto; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--c); background: color-mix(in srgb, var(--c) 12%, white);
+    border: 1px solid color-mix(in srgb, var(--c) 28%, white);
+    padding: 3px 9px; border-radius: 7px;
+  }
+  .f-title { font-size: 15.5px; font-weight: 600; margin: 0; flex: 1 1 auto; }
+  .sev { flex: 0 0 auto; font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--c); }
+  .risk {
+    flex: 0 0 auto; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+    color: var(--c); background: color-mix(in srgb, var(--c) 12%, white);
+    border: 1px solid color-mix(in srgb, var(--c) 28%, white);
+    padding: 3px 9px; border-radius: 7px; white-space: nowrap;
+  }
+  .f-riskmeta { margin-top: 9px; font-size: 12px; color: var(--ink-faint); }
+  .f-riskmeta b { color: var(--ink-soft); font-weight: 600; }
+  .f-res { margin: 9px 0 0; }
+  .f-res code, .f-detail code {
+    background: var(--surface-2); border: 1px solid var(--line);
+    padding: 2px 7px; border-radius: 6px; font-size: 12.5px; color: var(--ink);
+    word-break: break-all;
+  }
+  .f-detail { color: var(--ink-soft); font-size: 14px; margin: 9px 0 0; }
+  .f-reco {
+    display: flex; gap: 9px; margin-top: 12px; padding: 11px 13px;
+    background: #fff8ec; border: 1px solid #f4e3c1; border-radius: 10px;
+    font-size: 13.5px; color: #7a5a13;
+  }
+  .f-reco svg { width: 17px; height: 17px; flex: 0 0 auto; margin-top: 1px; fill: none; stroke: #c98a16; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .f-refs { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .f-refs a {
+    display: inline-flex; align-items: center; gap: 4px; text-decoration: none;
+    font-size: 12.5px; color: var(--brand); font-weight: 500;
+    background: color-mix(in srgb, var(--brand) 7%, white);
+    border: 1px solid color-mix(in srgb, var(--brand) 18%, white);
+    padding: 3px 10px; border-radius: 999px; transition: background .15s ease;
+  }
+  .f-refs a:hover { background: color-mix(in srgb, var(--brand) 14%, white); }
+  .f-refs svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+  .cards .finding:nth-child(1) { animation-delay: .02s; }
+  .cards .finding:nth-child(2) { animation-delay: .06s; }
+  .cards .finding:nth-child(3) { animation-delay: .1s; }
+  .cards .finding:nth-child(4) { animation-delay: .14s; }
+  .cards .finding:nth-child(n+5) { animation-delay: .18s; }
+
+  footer {
+    margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--line);
+    color: var(--ink-faint); font-size: 12.5px; line-height: 1.7;
+  }
+  footer b { color: var(--ink-soft); font-weight: 600; }
+
+  @media (max-width: 720px) {
+    .panel { grid-template-columns: 1fr; gap: 22px; }
+    .hero-inner { padding: 32px 24px 40px; }
+    .gauge { width: 150px; height: 150px; }
+    .gauge-num { font-size: 42px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after { animation: none !important; transition: none !important; }
+    .gauge .prog { stroke-dashoffset: 115.36; }
+  }
+  @media print {
+    body { background: #fff; }
+    .toolbar { display: none; }
+    .finding, .panel { box-shadow: none; break-inside: avoid; }
+    .hero::after { display: none; }
+  }
+</style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="hero-text">
+        <div class="brand-row">
+          <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.4 7.8 8 9 4.6-1.2 8-4 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+          <span class="brand-name">Keycloak Security Audit</span>
+        </div>
+        <h1>Security Audit Report</h1>
+        <div class="meta">
+          <span class="pill"><span class="k">Target</span><b>https://auth.example.com</b></span>
+          <span class="pill"><span class="k">Realm</span><b>master</b></span>
+          <span class="pill"><span class="k">Scope</span><b>all</b></span>
+          <span class="pill"><span class="k">Date</span><b>2026-05-26 10:00:00 UTC</b></span>
+        </div>
+      </div>
+      <div class="gauge">
+        <svg viewBox="0 0 140 140">
+          <circle class="track" cx="70" cy="70" r="54"></circle>
+          <circle class="prog" cx="70" cy="70" r="54"></circle>
+        </svg>
+        <div class="gauge-center">
+          <div>
+            <div class="gauge-num">66</div>
+            <div class="gauge-den">out of 100</div>
+            <div class="gauge-lbl">Needs attention</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="panel">
+      <div>
+        <h4>Risk exposure</h4>
+        <div class="risk-total"><span class="rt-num">34</span><span class="rt-lbl">weighted risk points<span class="rt-sub">impact × likelihood · score = 100 − risk</span></span></div>
+        <div class="bar"><span class="bar-seg" style="width:12.50%;background:#ea580c" title="High risk: 1"></span><span class="bar-seg" style="width:37.50%;background:#d97706" title="Medium risk: 3"></span><span class="bar-seg" style="width:50.00%;background:#2563eb" title="Low risk: 4"></span></div>
+        <div class="legend"><span class="legend-item"><span class="dot" style="background:#ea580c"></span>High<b>1</b></span><span class="legend-item"><span class="dot" style="background:#d97706"></span>Medium<b>3</b></span><span class="legend-item"><span class="dot" style="background:#2563eb"></span>Low<b>4</b></span></div>
+      </div>
+      <div class="stats"><div class="stat"><span class="stat-val" style="color:#dc2626">3</span><span class="stat-lbl">Failures</span></div><div class="stat"><span class="stat-val" style="color:#d97706">6</span><span class="stat-lbl">Warnings</span></div><div class="stat"><span class="stat-val" style="color:#16a34a">21</span><span class="stat-lbl">Passed</span></div><div class="stat"><span class="stat-val" style="color:#94a3b8">0</span><span class="stat-lbl">Skipped / errors</span></div></div>
+    </div>
+
+    <section class="toprisks"><h4>Top risks</h4><div class="tr-list"><div class="tr-item" style="--c:#ea580c">
+          <span class="tr-rank">1</span>
+          <span class="tr-main"><span class="tr-title">Implicit Flow enabled</span><span class="tr-cat">Clients</span></span>
+          <span class="tr-badge" style="--c:#ea580c">High</span>
+          <span class="tr-score" style="--c:#ea580c">12</span>
+        </div><div class="tr-item" style="--c:#d97706">
+          <span class="tr-rank">2</span>
+          <span class="tr-main"><span class="tr-title">MFA coverage (OTP/WebAuthn)</span><span class="tr-cat">User accounts</span></span>
+          <span class="tr-badge" style="--c:#d97706">Medium</span>
+          <span class="tr-score" style="--c:#d97706">6</span>
+        </div><div class="tr-item" style="--c:#d97706">
+          <span class="tr-rank">3</span>
+          <span class="tr-main"><span class="tr-title">CVE-2024-10492 — Path Traversal via External Control of File Name</span><span class="tr-cat">CVE / Known vulnerabilities</span></span>
+          <span class="tr-badge" style="--c:#d97706">Medium</span>
+          <span class="tr-score" style="--c:#d97706">5</span>
+        </div><div class="tr-item" style="--c:#d97706">
+          <span class="tr-rank">4</span>
+          <span class="tr-main"><span class="tr-title">CVE-2024-9666 — Proxy header handling Denial-of-Service (DoS)</span><span class="tr-cat">CVE / Known vulnerabilities</span></span>
+          <span class="tr-badge" style="--c:#d97706">Medium</span>
+          <span class="tr-score" style="--c:#d97706">5</span>
+        </div><div class="tr-item" style="--c:#2563eb">
+          <span class="tr-rank">5</span>
+          <span class="tr-main"><span class="tr-title">Refresh token revocation / rotation</span><span class="tr-cat">Realm</span></span>
+          <span class="tr-badge" style="--c:#2563eb">Low</span>
+          <span class="tr-score" style="--c:#2563eb">2.5</span>
+        </div></div></section>
+
+    <nav class="toolbar"><button class="chip active" data-filter="all">All<span class="chip-count">30</span></button><button class="chip" data-filter="issues">Issues<span class="chip-count">9</span></button><button class="chip" data-filter="pass">Passed<span class="chip-count">21</span></button></nav>
+
+    <section class="cat">
+        <div class="cat-head"><h2>Clients</h2><span class="cat-count">2</span></div>
+        <div class="cards">
+        <article class="finding" data-status="fail" data-risk="12" style="--accent:#dc2626">
+          <div class="f-top">
+            <span class="badge" style="--c:#dc2626">Fail</span>
+            <h3 class="f-title">Implicit Flow enabled</h3>
+            <span class="risk" style="--c:#ea580c">High risk · 12</span>
+          </div>
+          <div class="f-res"><code>legacy-spa</code></div>
+          <p class="f-detail">Client &quot;legacy-spa&quot; allows the Implicit Flow (token exposed in the URL).</p>
+          <div class="f-riskmeta">Impact <b>High</b> × Likelihood <b>confirmed</b> = <b>12</b> risk pts</div>
+          <div class="f-reco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2Z"/></svg><span>Disable the Implicit Flow and use the Standard Flow + PKCE.</span></div>
+          <div class="f-refs"><a href="https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients" target="_blank" rel="noopener">keycloak.org<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></div>
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">PKCE on public client</h3>
+            
+          </div>
+          <div class="f-res"><code>spa-public</code></div>
+          <p class="f-detail">PKCE S256 enforced on &quot;spa-public&quot;.</p>
+          
+          
+          <div class="f-refs"><a href="https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients" target="_blank" rel="noopener">keycloak.org<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></div>
+        </article></div>
+      </section><section class="cat">
+        <div class="cat-head"><h2>User accounts</h2><span class="cat-count">3</span></div>
+        <div class="cards">
+        <article class="finding" data-status="warn" data-risk="6" style="--accent:#d97706">
+          <div class="f-top">
+            <span class="badge" style="--c:#d97706">Warn</span>
+            <h3 class="f-title">MFA coverage (OTP/WebAuthn)</h3>
+            <span class="risk" style="--c:#d97706">Medium risk · 6</span>
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">2/15 probed account(s) without 2FA (no OTP nor WebAuthn) (master realm = admin accounts): ci-bot, backup-admin.</p>
+          <div class="f-riskmeta">Impact <b>High</b> × Likelihood <b>potential</b> = <b>6</b> risk pts</div>
+          <div class="f-reco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2Z"/></svg><span>Require OTP/MFA for all administrators of the master realm (required action or auth flow).</span></div>
+          
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">Predictable admin account name</h3>
+            
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">No trivial administrative account name detected.</p>
+          
+          
+          
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">Disabled accounts present</h3>
+            
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">3 disabled account(s) — consider purging obsolete accounts.</p>
+          
+          
+          
+        </article></div>
+      </section><section class="cat">
+        <div class="cat-head"><h2>CVE / Known vulnerabilities</h2><span class="cat-count">2</span></div>
+        <div class="cards">
+        <article class="finding" data-status="fail" data-risk="5" style="--accent:#dc2626">
+          <div class="f-top">
+            <span class="badge" style="--c:#dc2626">Fail</span>
+            <h3 class="f-title">CVE-2024-10492 — Path Traversal via External Control of File Name</h3>
+            <span class="risk" style="--c:#d97706">Medium risk · 5</span>
+          </div>
+          <div class="f-res"><code>keycloak 24.0.1</code></div>
+          <p class="f-detail">Version 24.0.1 is within the vulnerable range &quot;&gt;= 0, &lt; 24.0.8&quot; (org.keycloak:keycloak-services).</p>
+          <div class="f-riskmeta">Impact <b>Medium</b> × Likelihood <b>confirmed</b> = <b>5</b> risk pts</div>
+          <div class="f-reco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2Z"/></svg><span>Upgrade to 24.0.8 or later.</span></div>
+          <div class="f-refs"><a href="https://github.com/advisories/GHSA-5545-r4hg-rj4m" target="_blank" rel="noopener">github.com<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></div>
+        </article>
+        <article class="finding" data-status="fail" data-risk="5" style="--accent:#dc2626">
+          <div class="f-top">
+            <span class="badge" style="--c:#dc2626">Fail</span>
+            <h3 class="f-title">CVE-2024-9666 — Proxy header handling Denial-of-Service (DoS)</h3>
+            <span class="risk" style="--c:#d97706">Medium risk · 5</span>
+          </div>
+          <div class="f-res"><code>keycloak 24.0.1</code></div>
+          <p class="f-detail">Version 24.0.1 is within the vulnerable range &quot;&gt;= 0, &lt; 24.0.8&quot; (org.keycloak:keycloak-services).</p>
+          <div class="f-riskmeta">Impact <b>Medium</b> × Likelihood <b>confirmed</b> = <b>5</b> risk pts</div>
+          <div class="f-reco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2Z"/></svg><span>Upgrade to 24.0.8 or later.</span></div>
+          <div class="f-refs"><a href="https://github.com/advisories/GHSA-jgwc-jh89-rpgq" target="_blank" rel="noopener">github.com<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></div>
+        </article></div>
+      </section><section class="cat">
+        <div class="cat-head"><h2>Realm</h2><span class="cat-count">7</span></div>
+        <div class="cards">
+        <article class="finding" data-status="warn" data-risk="2.5" style="--accent:#d97706">
+          <div class="f-top">
+            <span class="badge" style="--c:#d97706">Warn</span>
+            <h3 class="f-title">Refresh token revocation / rotation</h3>
+            <span class="risk" style="--c:#2563eb">Low risk · 2.5</span>
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">revokeRefreshToken = false.</p>
+          <div class="f-riskmeta">Impact <b>Medium</b> × Likelihood <b>potential</b> = <b>2.5</b> risk pts</div>
+          <div class="f-reco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2Z"/></svg><span>Enable refresh token revocation (rotation) to limit replay attacks.</span></div>
+          <div class="f-refs"><a href="https://www.keycloak.org/docs/latest/server_admin/" target="_blank" rel="noopener">keycloak.org<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></div>
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">SSL/HTTPS required</h3>
+            
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">sslRequired = &quot;all&quot;.</p>
+          
+          
+          <div class="f-refs"><a href="https://www.keycloak.org/docs/latest/server_admin/" target="_blank" rel="noopener">keycloak.org<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></div>
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">Brute-force protection</h3>
+            
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">Enabled (failureFactor=5).</p>
+          
+          
+          <div class="f-refs"><a href="https://www.keycloak.org/docs/latest/server_admin/" target="_blank" rel="noopener">keycloak.org<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></div>
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">Access token lifespan</h3>
+            
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">accessTokenLifespan = 300s.</p>
+          
+          
+          <div class="f-refs"><a href="https://www.keycloak.org/docs/latest/server_admin/" target="_blank" rel="noopener">keycloak.org<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></div>
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">Content-Security-Policy</h3>
+            
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">contentSecurityPolicy = &quot;frame-src 'self'; frame-ancestors 'self'; object-src 'none';&quot;.</p>
+          
+          
+          <div class="f-refs"><a href="https://www.keycloak.org/docs/latest/server_admin/" target="_blank" rel="noopener">keycloak.org<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></div>
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">Password policy</h3>
+            
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">Policy: &quot;length(12) and notUsername and digits(1)&quot; (min length = 12).</p>
+          
+          
+          <div class="f-refs"><a href="https://www.keycloak.org/docs/latest/server_admin/" target="_blank" rel="noopener">keycloak.org<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></div>
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">Email verification</h3>
+            
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">verifyEmail = true.</p>
+          
+          
+          <div class="f-refs"><a href="https://www.keycloak.org/docs/latest/server_admin/" target="_blank" rel="noopener">keycloak.org<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></div>
+        </article></div>
+      </section><section class="cat">
+        <div class="cat-head"><h2>HTTP Headers</h2><span class="cat-count">5</span></div>
+        <div class="cards">
+        <article class="finding" data-status="warn" data-risk="2.5" style="--accent:#d97706">
+          <div class="f-top">
+            <span class="badge" style="--c:#d97706">Warn</span>
+            <h3 class="f-title">Strict-Transport-Security (HSTS)</h3>
+            <span class="risk" style="--c:#2563eb">Low risk · 2.5</span>
+          </div>
+          <div class="f-res"><code>https://auth.example.com</code></div>
+          <p class="f-detail">Header missing from the response.</p>
+          <div class="f-riskmeta">Impact <b>Medium</b> × Likelihood <b>potential</b> = <b>2.5</b> risk pts</div>
+          <div class="f-reco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2Z"/></svg><span>Add HSTS with max-age &gt;= 31536000 (1 year).</span></div>
+          
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">X-Frame-Options</h3>
+            
+          </div>
+          <div class="f-res"><code>https://auth.example.com</code></div>
+          <p class="f-detail">Present: &quot;SAMEORIGIN&quot;.</p>
+          
+          
+          
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">Content-Security-Policy</h3>
+            
+          </div>
+          <div class="f-res"><code>https://auth.example.com</code></div>
+          <p class="f-detail">Present: &quot;frame-ancestors 'self'; default-src 'self'&quot;.</p>
+          
+          
+          
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">X-Content-Type-Options</h3>
+            
+          </div>
+          <div class="f-res"><code>https://auth.example.com</code></div>
+          <p class="f-detail">Present: &quot;nosniff&quot;.</p>
+          
+          
+          
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">Referrer-Policy</h3>
+            
+          </div>
+          <div class="f-res"><code>https://auth.example.com</code></div>
+          <p class="f-detail">Present: &quot;strict-origin-when-cross-origin&quot;.</p>
+          
+          
+          
+        </article></div>
+      </section><section class="cat">
+        <div class="cat-head"><h2>OIDC Discovery</h2><span class="cat-count">3</span></div>
+        <div class="cards">
+        <article class="finding" data-status="warn" data-risk="0.5" style="--accent:#d97706">
+          <div class="f-top">
+            <span class="badge" style="--c:#d97706">Warn</span>
+            <h3 class="f-title">Implicit Flow advertised</h3>
+            <span class="risk" style="--c:#2563eb">Low risk · 0.5</span>
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">response_types_supported = [code, none, id_token, token id_token].</p>
+          <div class="f-riskmeta">Impact <b>Low</b> × Likelihood <b>potential</b> = <b>0.5</b> risk pts</div>
+          <div class="f-reco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2Z"/></svg><span>Prefer the code flow; the implicit flow stays advertised by default server-side but should be disabled per client.</span></div>
+          
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">&quot;none&quot; algorithm advertised</h3>
+            
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">Algorithms: RS256, ES256, PS256.</p>
+          
+          
+          
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">PKCE supported</h3>
+            
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">code_challenge_methods_supported = [S256, plain].</p>
+          
+          
+          
+        </article></div>
+      </section><section class="cat">
+        <div class="cat-head"><h2>Exposure / Version</h2><span class="cat-count">1</span></div>
+        <div class="cards">
+        <article class="finding" data-status="warn" data-risk="0.5" style="--accent:#d97706">
+          <div class="f-top">
+            <span class="badge" style="--c:#d97706">Warn</span>
+            <h3 class="f-title">Exposed Keycloak version</h3>
+            <span class="risk" style="--c:#2563eb">Low risk · 0.5</span>
+          </div>
+          <div class="f-res"><code>https://auth.example.com</code></div>
+          <p class="f-detail">Likely version detected: &quot;24.0.1&quot;.</p>
+          <div class="f-riskmeta">Impact <b>Low</b> × Likelihood <b>potential</b> = <b>0.5</b> risk pts</div>
+          <div class="f-reco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2Z"/></svg><span>Compare this version against published CVEs (see the CVE check) and plan upgrades.</span></div>
+          <div class="f-refs"><a href="https://github.com/keycloak/keycloak/security/advisories" target="_blank" rel="noopener">github.com<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></div>
+        </article></div>
+      </section><section class="cat">
+        <div class="cat-head"><h2>Exposed endpoints</h2><span class="cat-count">3</span></div>
+        <div class="cards">
+        <article class="finding" data-status="warn" data-risk="0" style="--accent:#d97706">
+          <div class="f-top">
+            <span class="badge" style="--c:#d97706">Warn</span>
+            <h3 class="f-title">Admin console reachable</h3>
+            
+          </div>
+          <div class="f-res"><code>https://auth.example.com/admin/master/console/</code></div>
+          <p class="f-detail">The admin console is publicly reachable. Not blocking if protected by authentication + MFA, but reducing its exposure surface is recommended.</p>
+          
+          <div class="f-reco"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6m-5 3h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V17h6v-.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2Z"/></svg><span>Restrict access (IP allowlist / VPN / reverse proxy) in addition to authentication.</span></div>
+          
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">/metrics endpoint exposed</h3>
+            
+          </div>
+          <div class="f-res"><code>https://auth.example.com</code></div>
+          <p class="f-detail">Not reachable from the scanner (neither the main port nor management 9000).</p>
+          
+          
+          
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">/health endpoint exposed</h3>
+            
+          </div>
+          <div class="f-res"><code>https://auth.example.com</code></div>
+          <p class="f-detail">Not reachable from the scanner (neither the main port nor management 9000).</p>
+          
+          
+          
+        </article></div>
+      </section><section class="cat">
+        <div class="cat-head"><h2>Keys &amp; Tokens</h2><span class="cat-count">2</span></div>
+        <div class="cards">
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">Active signature key</h3>
+            
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">2 active signature key(s).</p>
+          
+          
+          
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">Token signature algorithm</h3>
+            
+          </div>
+          <div class="f-res"><code>master</code></div>
+          <p class="f-detail">Active signature keys: RS256, ES256.</p>
+          
+          
+          
+        </article></div>
+      </section><section class="cat">
+        <div class="cat-head"><h2>TLS / Network</h2><span class="cat-count">2</span></div>
+        <div class="cards">
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">TLS protocol version</h3>
+            
+          </div>
+          <div class="f-res"><code>auth.example.com</code></div>
+          <p class="f-detail">Negotiated protocol: TLSv1.3.</p>
+          
+          
+          
+        </article>
+        <article class="finding" data-status="pass" data-risk="0" style="--accent:#16a34a">
+          <div class="f-top">
+            <span class="badge" style="--c:#16a34a">Pass</span>
+            <h3 class="f-title">Trusted TLS certificate</h3>
+            
+          </div>
+          <div class="f-res"><code>auth.example.com</code></div>
+          <p class="f-detail">Valid certificate (expires in 74 days).</p>
+          
+          
+          
+        </article></div>
+      </section>
+
+    <footer>
+      Generated by <b>Keycloak Security Audit</b> · 2026-05-26 10:00:00 UTC<br>
+      Automated, non-exhaustive audit — it does not replace a manual penetration test.
+    </footer>
+  </div>
+
+<script>
+(function () {
+  var buttons = document.querySelectorAll(".chip[data-filter]");
+  var findings = document.querySelectorAll(".finding");
+  var sections = document.querySelectorAll(".cat");
+  function apply(filter) {
+    findings.forEach(function (el) {
+      var st = el.getAttribute("data-status");
+      var show =
+        filter === "all" ||
+        (filter === "issues" && (st === "fail" || st === "warn")) ||
+        (filter === "other" && (st === "skipped" || st === "error")) ||
+        filter === st;
+      el.style.display = show ? "" : "none";
+    });
+    sections.forEach(function (sec) {
+      var visible = 0;
+      sec.querySelectorAll(".finding").forEach(function (f) {
+        if (f.style.display !== "none") visible++;
+      });
+      sec.style.display = visible ? "" : "none";
+    });
+  }
+  buttons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      buttons.forEach(function (x) { x.classList.remove("active"); });
+      b.classList.add("active");
+      apply(b.getAttribute("data-filter"));
+    });
+  });
+})();
+</script>
+</body>
+</html>

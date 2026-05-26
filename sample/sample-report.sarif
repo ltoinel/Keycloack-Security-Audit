@@ -1,0 +1,407 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "keycloak-security-audit",
+          "informationUri": "https://github.com/ltoinel/Keycloack-Security-Audit",
+          "version": "0.1.0",
+          "rules": [
+            {
+              "id": "realm.refresh-token-rotation",
+              "name": "Refreshtokenrevocationrotation",
+              "shortDescription": {
+                "text": "Refresh token revocation / rotation"
+              },
+              "fullDescription": {
+                "text": "revokeRefreshToken = false."
+              },
+              "helpUri": "https://www.keycloak.org/docs/latest/server_admin/",
+              "help": {
+                "text": "Enable refresh token revocation (rotation) to limit replay attacks."
+              },
+              "properties": {
+                "security-severity": "5.0",
+                "tags": [
+                  "security",
+                  "Realm"
+                ]
+              }
+            },
+            {
+              "id": "client.implicit-flow",
+              "name": "ImplicitFlowenabled",
+              "shortDescription": {
+                "text": "Implicit Flow enabled"
+              },
+              "fullDescription": {
+                "text": "Client \"legacy-spa\" allows the Implicit Flow (token exposed in the URL)."
+              },
+              "helpUri": "https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients",
+              "help": {
+                "text": "Disable the Implicit Flow and use the Standard Flow + PKCE."
+              },
+              "properties": {
+                "security-severity": "8.0",
+                "tags": [
+                  "security",
+                  "Clients"
+                ]
+              }
+            },
+            {
+              "id": "users.mfa-coverage",
+              "name": "MFAcoverageOTPWebAuthn",
+              "shortDescription": {
+                "text": "MFA coverage (OTP/WebAuthn)"
+              },
+              "fullDescription": {
+                "text": "2/15 probed account(s) without 2FA (no OTP nor WebAuthn) (master realm = admin accounts): ci-bot, backup-admin."
+              },
+              "help": {
+                "text": "Require OTP/MFA for all administrators of the master realm (required action or auth flow)."
+              },
+              "properties": {
+                "security-severity": "8.0",
+                "tags": [
+                  "security",
+                  "User accounts"
+                ]
+              }
+            },
+            {
+              "id": "headers.hsts",
+              "name": "StrictTransportSecurityHSTS",
+              "shortDescription": {
+                "text": "Strict-Transport-Security (HSTS)"
+              },
+              "fullDescription": {
+                "text": "Header missing from the response."
+              },
+              "help": {
+                "text": "Add HSTS with max-age >= 31536000 (1 year)."
+              },
+              "properties": {
+                "security-severity": "5.0",
+                "tags": [
+                  "security",
+                  "HTTP Headers"
+                ]
+              }
+            },
+            {
+              "id": "endpoint.admin-console",
+              "name": "Adminconsolereachable",
+              "shortDescription": {
+                "text": "Admin console reachable"
+              },
+              "fullDescription": {
+                "text": "The admin console is publicly reachable. Not blocking if protected by authentication + MFA, but reducing its exposure surface is recommended."
+              },
+              "help": {
+                "text": "Restrict access (IP allowlist / VPN / reverse proxy) in addition to authentication."
+              },
+              "properties": {
+                "security-severity": "0.0",
+                "tags": [
+                  "security",
+                  "Exposed endpoints"
+                ]
+              }
+            },
+            {
+              "id": "wellknown.implicit",
+              "name": "ImplicitFlowadvertised",
+              "shortDescription": {
+                "text": "Implicit Flow advertised"
+              },
+              "fullDescription": {
+                "text": "response_types_supported = [code, none, id_token, token id_token]."
+              },
+              "help": {
+                "text": "Prefer the code flow; the implicit flow stays advertised by default server-side but should be disabled per client."
+              },
+              "properties": {
+                "security-severity": "3.0",
+                "tags": [
+                  "security",
+                  "OIDC Discovery"
+                ]
+              }
+            },
+            {
+              "id": "version.detected",
+              "name": "ExposedKeycloakversion",
+              "shortDescription": {
+                "text": "Exposed Keycloak version"
+              },
+              "fullDescription": {
+                "text": "Likely version detected: \"24.0.1\"."
+              },
+              "helpUri": "https://github.com/keycloak/keycloak/security/advisories",
+              "help": {
+                "text": "Compare this version against published CVEs (see the CVE check) and plan upgrades."
+              },
+              "properties": {
+                "security-severity": "3.0",
+                "tags": [
+                  "security",
+                  "Exposure / Version"
+                ]
+              }
+            },
+            {
+              "id": "cve.GHSA-5545-r4hg-rj4m",
+              "name": "CVE202410492PathTraversalviaExternalControlofFileName",
+              "shortDescription": {
+                "text": "CVE-2024-10492 — Path Traversal via External Control of File Name"
+              },
+              "fullDescription": {
+                "text": "Version 24.0.1 is within the vulnerable range \">= 0, < 24.0.8\" (org.keycloak:keycloak-services)."
+              },
+              "helpUri": "https://github.com/advisories/GHSA-5545-r4hg-rj4m",
+              "help": {
+                "text": "Upgrade to 24.0.8 or later."
+              },
+              "properties": {
+                "security-severity": "5.0",
+                "tags": [
+                  "security",
+                  "CVE / Known vulnerabilities"
+                ]
+              }
+            },
+            {
+              "id": "cve.GHSA-jgwc-jh89-rpgq",
+              "name": "CVE20249666ProxyheaderhandlingDenialofServiceDoS",
+              "shortDescription": {
+                "text": "CVE-2024-9666 — Proxy header handling Denial-of-Service (DoS)"
+              },
+              "fullDescription": {
+                "text": "Version 24.0.1 is within the vulnerable range \">= 0, < 24.0.8\" (org.keycloak:keycloak-services)."
+              },
+              "helpUri": "https://github.com/advisories/GHSA-jgwc-jh89-rpgq",
+              "help": {
+                "text": "Upgrade to 24.0.8 or later."
+              },
+              "properties": {
+                "security-severity": "5.0",
+                "tags": [
+                  "security",
+                  "CVE / Known vulnerabilities"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "realm.refresh-token-rotation",
+          "level": "warning",
+          "message": {
+            "text": "revokeRefreshToken = false. Enable refresh token revocation (rotation) to limit replay attacks."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "master"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "medium",
+            "category": "Realm",
+            "risk": 2.5,
+            "risk-level": "low"
+          }
+        },
+        {
+          "ruleId": "client.implicit-flow",
+          "level": "error",
+          "message": {
+            "text": "Client \"legacy-spa\" allows the Implicit Flow (token exposed in the URL). Disable the Implicit Flow and use the Standard Flow + PKCE."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "legacy-spa"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "high",
+            "category": "Clients",
+            "risk": 12,
+            "risk-level": "high"
+          }
+        },
+        {
+          "ruleId": "users.mfa-coverage",
+          "level": "warning",
+          "message": {
+            "text": "2/15 probed account(s) without 2FA (no OTP nor WebAuthn) (master realm = admin accounts): ci-bot, backup-admin. Require OTP/MFA for all administrators of the master realm (required action or auth flow)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "master"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "high",
+            "category": "User accounts",
+            "risk": 6,
+            "risk-level": "medium"
+          }
+        },
+        {
+          "ruleId": "headers.hsts",
+          "level": "warning",
+          "message": {
+            "text": "Header missing from the response. Add HSTS with max-age >= 31536000 (1 year)."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://auth.example.com"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "medium",
+            "category": "HTTP Headers",
+            "risk": 2.5,
+            "risk-level": "low"
+          }
+        },
+        {
+          "ruleId": "endpoint.admin-console",
+          "level": "warning",
+          "message": {
+            "text": "The admin console is publicly reachable. Not blocking if protected by authentication + MFA, but reducing its exposure surface is recommended. Restrict access (IP allowlist / VPN / reverse proxy) in addition to authentication."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://auth.example.com/admin/master/console/"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "info",
+            "category": "Exposed endpoints",
+            "risk": 0,
+            "risk-level": "none"
+          }
+        },
+        {
+          "ruleId": "wellknown.implicit",
+          "level": "warning",
+          "message": {
+            "text": "response_types_supported = [code, none, id_token, token id_token]. Prefer the code flow; the implicit flow stays advertised by default server-side but should be disabled per client."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "master"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "low",
+            "category": "OIDC Discovery",
+            "risk": 0.5,
+            "risk-level": "low"
+          }
+        },
+        {
+          "ruleId": "version.detected",
+          "level": "warning",
+          "message": {
+            "text": "Likely version detected: \"24.0.1\". Compare this version against published CVEs (see the CVE check) and plan upgrades."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "https://auth.example.com"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "low",
+            "category": "Exposure / Version",
+            "risk": 0.5,
+            "risk-level": "low"
+          }
+        },
+        {
+          "ruleId": "cve.GHSA-5545-r4hg-rj4m",
+          "level": "error",
+          "message": {
+            "text": "Version 24.0.1 is within the vulnerable range \">= 0, < 24.0.8\" (org.keycloak:keycloak-services). Upgrade to 24.0.8 or later."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "keycloak 24.0.1"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "medium",
+            "category": "CVE / Known vulnerabilities",
+            "risk": 5,
+            "risk-level": "medium"
+          }
+        },
+        {
+          "ruleId": "cve.GHSA-jgwc-jh89-rpgq",
+          "level": "error",
+          "message": {
+            "text": "Version 24.0.1 is within the vulnerable range \">= 0, < 24.0.8\" (org.keycloak:keycloak-services). Upgrade to 24.0.8 or later."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "keycloak 24.0.1"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "severity": "medium",
+            "category": "CVE / Known vulnerabilities",
+            "risk": 5,
+            "risk-level": "medium"
+          }
+        }
+      ],
+      "properties": {
+        "target": "https://auth.example.com",
+        "realm": "master",
+        "date": "2026-05-26T10:00:00.000Z"
+      }
+    }
+  ]
+}

@@ -1,0 +1,540 @@
+{
+  "tool": "keycloak-security-audit",
+  "version": "0.1.0",
+  "meta": {
+    "baseUrl": "https://auth.example.com",
+    "realm": "master",
+    "date": "2026-05-26T10:00:00.000Z",
+    "mode": "all"
+  },
+  "summary": {
+    "total": 30,
+    "byStatus": {
+      "fail": 3,
+      "warn": 6,
+      "pass": 21,
+      "skipped": 0,
+      "error": 0
+    },
+    "bySeverity": {
+      "critical": 0,
+      "high": 2,
+      "medium": 4,
+      "low": 2,
+      "info": 1
+    },
+    "failuresBySeverity": {
+      "critical": 0,
+      "high": 1,
+      "medium": 2,
+      "low": 0,
+      "info": 0
+    },
+    "byRisk": {
+      "critical": 0,
+      "high": 1,
+      "medium": 3,
+      "low": 4,
+      "none": 22
+    },
+    "risk": 34,
+    "score": 66
+  },
+  "findings": [
+    {
+      "id": "client.implicit-flow",
+      "title": "Implicit Flow enabled",
+      "category": "Clients",
+      "resource": "legacy-spa",
+      "severity": "high",
+      "status": "fail",
+      "detail": "Client \"legacy-spa\" allows the Implicit Flow (token exposed in the URL).",
+      "recommendation": "Disable the Implicit Flow and use the Standard Flow + PKCE.",
+      "references": [
+        "https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients"
+      ],
+      "risk": {
+        "score": 12,
+        "level": "high",
+        "impact": 12,
+        "likelihood": 1
+      }
+    },
+    {
+      "id": "users.mfa-coverage",
+      "title": "MFA coverage (OTP/WebAuthn)",
+      "category": "User accounts",
+      "resource": "master",
+      "severity": "high",
+      "status": "warn",
+      "detail": "2/15 probed account(s) without 2FA (no OTP nor WebAuthn) (master realm = admin accounts): ci-bot, backup-admin.",
+      "recommendation": "Require OTP/MFA for all administrators of the master realm (required action or auth flow).",
+      "risk": {
+        "score": 6,
+        "level": "medium",
+        "impact": 12,
+        "likelihood": 0.5
+      }
+    },
+    {
+      "id": "cve.GHSA-5545-r4hg-rj4m",
+      "title": "CVE-2024-10492 — Path Traversal via External Control of File Name",
+      "category": "CVE / Known vulnerabilities",
+      "resource": "keycloak 24.0.1",
+      "severity": "medium",
+      "status": "fail",
+      "detail": "Version 24.0.1 is within the vulnerable range \">= 0, < 24.0.8\" (org.keycloak:keycloak-services).",
+      "recommendation": "Upgrade to 24.0.8 or later.",
+      "references": [
+        "https://github.com/advisories/GHSA-5545-r4hg-rj4m"
+      ],
+      "risk": {
+        "score": 5,
+        "level": "medium",
+        "impact": 5,
+        "likelihood": 1
+      }
+    },
+    {
+      "id": "cve.GHSA-jgwc-jh89-rpgq",
+      "title": "CVE-2024-9666 — Proxy header handling Denial-of-Service (DoS)",
+      "category": "CVE / Known vulnerabilities",
+      "resource": "keycloak 24.0.1",
+      "severity": "medium",
+      "status": "fail",
+      "detail": "Version 24.0.1 is within the vulnerable range \">= 0, < 24.0.8\" (org.keycloak:keycloak-services).",
+      "recommendation": "Upgrade to 24.0.8 or later.",
+      "references": [
+        "https://github.com/advisories/GHSA-jgwc-jh89-rpgq"
+      ],
+      "risk": {
+        "score": 5,
+        "level": "medium",
+        "impact": 5,
+        "likelihood": 1
+      }
+    },
+    {
+      "id": "realm.refresh-token-rotation",
+      "title": "Refresh token revocation / rotation",
+      "category": "Realm",
+      "resource": "master",
+      "severity": "medium",
+      "status": "warn",
+      "detail": "revokeRefreshToken = false.",
+      "recommendation": "Enable refresh token revocation (rotation) to limit replay attacks.",
+      "references": [
+        "https://www.keycloak.org/docs/latest/server_admin/"
+      ],
+      "risk": {
+        "score": 2.5,
+        "level": "low",
+        "impact": 5,
+        "likelihood": 0.5
+      }
+    },
+    {
+      "id": "headers.hsts",
+      "title": "Strict-Transport-Security (HSTS)",
+      "category": "HTTP Headers",
+      "resource": "https://auth.example.com",
+      "severity": "medium",
+      "status": "warn",
+      "detail": "Header missing from the response.",
+      "recommendation": "Add HSTS with max-age >= 31536000 (1 year).",
+      "risk": {
+        "score": 2.5,
+        "level": "low",
+        "impact": 5,
+        "likelihood": 0.5
+      }
+    },
+    {
+      "id": "wellknown.implicit",
+      "title": "Implicit Flow advertised",
+      "category": "OIDC Discovery",
+      "resource": "master",
+      "severity": "low",
+      "status": "warn",
+      "detail": "response_types_supported = [code, none, id_token, token id_token].",
+      "recommendation": "Prefer the code flow; the implicit flow stays advertised by default server-side but should be disabled per client.",
+      "risk": {
+        "score": 0.5,
+        "level": "low",
+        "impact": 1,
+        "likelihood": 0.5
+      }
+    },
+    {
+      "id": "version.detected",
+      "title": "Exposed Keycloak version",
+      "category": "Exposure / Version",
+      "resource": "https://auth.example.com",
+      "severity": "low",
+      "status": "warn",
+      "detail": "Likely version detected: \"24.0.1\".",
+      "recommendation": "Compare this version against published CVEs (see the CVE check) and plan upgrades.",
+      "references": [
+        "https://github.com/keycloak/keycloak/security/advisories"
+      ],
+      "risk": {
+        "score": 0.5,
+        "level": "low",
+        "impact": 1,
+        "likelihood": 0.5
+      }
+    },
+    {
+      "id": "endpoint.admin-console",
+      "title": "Admin console reachable",
+      "category": "Exposed endpoints",
+      "resource": "https://auth.example.com/admin/master/console/",
+      "severity": "info",
+      "status": "warn",
+      "detail": "The admin console is publicly reachable. Not blocking if protected by authentication + MFA, but reducing its exposure surface is recommended.",
+      "recommendation": "Restrict access (IP allowlist / VPN / reverse proxy) in addition to authentication.",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 0,
+        "likelihood": 0.5
+      }
+    },
+    {
+      "id": "realm.ssl-required",
+      "title": "SSL/HTTPS required",
+      "category": "Realm",
+      "resource": "master",
+      "severity": "high",
+      "status": "pass",
+      "detail": "sslRequired = \"all\".",
+      "references": [
+        "https://www.keycloak.org/docs/latest/server_admin/"
+      ],
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 12,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "realm.brute-force",
+      "title": "Brute-force protection",
+      "category": "Realm",
+      "resource": "master",
+      "severity": "high",
+      "status": "pass",
+      "detail": "Enabled (failureFactor=5).",
+      "references": [
+        "https://www.keycloak.org/docs/latest/server_admin/"
+      ],
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 12,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "keys.active-present",
+      "title": "Active signature key",
+      "category": "Keys & Tokens",
+      "resource": "master",
+      "severity": "high",
+      "status": "pass",
+      "detail": "2 active signature key(s).",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 12,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "realm.access-token-lifespan",
+      "title": "Access token lifespan",
+      "category": "Realm",
+      "resource": "master",
+      "severity": "medium",
+      "status": "pass",
+      "detail": "accessTokenLifespan = 300s.",
+      "references": [
+        "https://www.keycloak.org/docs/latest/server_admin/"
+      ],
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 5,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "realm.csp",
+      "title": "Content-Security-Policy",
+      "category": "Realm",
+      "resource": "master",
+      "severity": "medium",
+      "status": "pass",
+      "detail": "contentSecurityPolicy = \"frame-src 'self'; frame-ancestors 'self'; object-src 'none';\".",
+      "references": [
+        "https://www.keycloak.org/docs/latest/server_admin/"
+      ],
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 5,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "headers.x-frame-options",
+      "title": "X-Frame-Options",
+      "category": "HTTP Headers",
+      "resource": "https://auth.example.com",
+      "severity": "medium",
+      "status": "pass",
+      "detail": "Present: \"SAMEORIGIN\".",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 5,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "headers.csp",
+      "title": "Content-Security-Policy",
+      "category": "HTTP Headers",
+      "resource": "https://auth.example.com",
+      "severity": "medium",
+      "status": "pass",
+      "detail": "Present: \"frame-ancestors 'self'; default-src 'self'\".",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 5,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "endpoint.metrics",
+      "title": "/metrics endpoint exposed",
+      "category": "Exposed endpoints",
+      "resource": "https://auth.example.com",
+      "severity": "medium",
+      "status": "pass",
+      "detail": "Not reachable from the scanner (neither the main port nor management 9000).",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 5,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "realm.password-policy",
+      "title": "Password policy",
+      "category": "Realm",
+      "resource": "master",
+      "severity": "low",
+      "status": "pass",
+      "detail": "Policy: \"length(12) and notUsername and digits(1)\" (min length = 12).",
+      "references": [
+        "https://www.keycloak.org/docs/latest/server_admin/"
+      ],
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 1,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "realm.verify-email",
+      "title": "Email verification",
+      "category": "Realm",
+      "resource": "master",
+      "severity": "low",
+      "status": "pass",
+      "detail": "verifyEmail = true.",
+      "references": [
+        "https://www.keycloak.org/docs/latest/server_admin/"
+      ],
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 1,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "client.pkce",
+      "title": "PKCE on public client",
+      "category": "Clients",
+      "resource": "spa-public",
+      "severity": "low",
+      "status": "pass",
+      "detail": "PKCE S256 enforced on \"spa-public\".",
+      "references": [
+        "https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients"
+      ],
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 1,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "keys.signature-algorithm",
+      "title": "Token signature algorithm",
+      "category": "Keys & Tokens",
+      "resource": "master",
+      "severity": "low",
+      "status": "pass",
+      "detail": "Active signature keys: RS256, ES256.",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 1,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "users.predictable-admin",
+      "title": "Predictable admin account name",
+      "category": "User accounts",
+      "resource": "master",
+      "severity": "low",
+      "status": "pass",
+      "detail": "No trivial administrative account name detected.",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 1,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "tls.version",
+      "title": "TLS protocol version",
+      "category": "TLS / Network",
+      "resource": "auth.example.com",
+      "severity": "low",
+      "status": "pass",
+      "detail": "Negotiated protocol: TLSv1.3.",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 1,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "tls.cert-valid",
+      "title": "Trusted TLS certificate",
+      "category": "TLS / Network",
+      "resource": "auth.example.com",
+      "severity": "low",
+      "status": "pass",
+      "detail": "Valid certificate (expires in 74 days).",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 1,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "headers.x-content-type",
+      "title": "X-Content-Type-Options",
+      "category": "HTTP Headers",
+      "resource": "https://auth.example.com",
+      "severity": "low",
+      "status": "pass",
+      "detail": "Present: \"nosniff\".",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 1,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "headers.referrer-policy",
+      "title": "Referrer-Policy",
+      "category": "HTTP Headers",
+      "resource": "https://auth.example.com",
+      "severity": "low",
+      "status": "pass",
+      "detail": "Present: \"strict-origin-when-cross-origin\".",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 1,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "endpoint.health",
+      "title": "/health endpoint exposed",
+      "category": "Exposed endpoints",
+      "resource": "https://auth.example.com",
+      "severity": "low",
+      "status": "pass",
+      "detail": "Not reachable from the scanner (neither the main port nor management 9000).",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 1,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "wellknown.alg-none",
+      "title": "\"none\" algorithm advertised",
+      "category": "OIDC Discovery",
+      "resource": "master",
+      "severity": "low",
+      "status": "pass",
+      "detail": "Algorithms: RS256, ES256, PS256.",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 1,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "wellknown.pkce",
+      "title": "PKCE supported",
+      "category": "OIDC Discovery",
+      "resource": "master",
+      "severity": "low",
+      "status": "pass",
+      "detail": "code_challenge_methods_supported = [S256, plain].",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 1,
+        "likelihood": 0
+      }
+    },
+    {
+      "id": "users.disabled",
+      "title": "Disabled accounts present",
+      "category": "User accounts",
+      "resource": "master",
+      "severity": "info",
+      "status": "pass",
+      "detail": "3 disabled account(s) — consider purging obsolete accounts.",
+      "risk": {
+        "score": 0,
+        "level": "none",
+        "impact": 0,
+        "likelihood": 0
+      }
+    }
+  ]
+}

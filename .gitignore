@@ -9,4 +9,3 @@ keycloak-audit-*.md
 keycloak-audit-*.json
 keycloak-audit-*.sarif
 .DS_Store
-.DS_Store
