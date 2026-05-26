@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+*.log
+# Generated reports
+reports/
+keycloak-audit-*.html
+keycloak-audit-*.md
+keycloak-audit-*.json
+keycloak-audit-*.sarif
