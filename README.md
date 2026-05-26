@@ -9,6 +9,18 @@ Output: **HTML**, **Markdown**, **JSON** and **SARIF** (code scanning / SIEM) wi
 
 > ⚠️ Only audit servers you are **authorized** to test. The checks are designed to be **non-intrusive** (no brute-force attempts and no active user enumeration).
 
+## Sample reports
+
+Example reports (generated from representative sample data — score **66/100**, white-box +
+black-box findings, risk weighting and CVE correlation) are available in [`sample/`](sample/):
+
+| Format | File | Notes |
+|---|---|---|
+| HTML | [`sample-report.html`](sample/sample-report.html) | Full visual report (score gauge, risk distribution, top risks, filterable finding cards). Download and open in a browser — GitHub shows the raw source. |
+| Markdown | [`sample-report.md`](sample/sample-report.md) | Renders directly on GitHub. |
+| JSON | [`sample-report.json`](sample/sample-report.json) | Structured output: per-finding `risk` object, `byRisk` / `risk` summary. |
+| SARIF | [`sample-report.sarif`](sample/sample-report.sarif) | SARIF 2.1.0 for code scanning / SIEM ingestion. |
+
 ## Installation
 
 ```bash
