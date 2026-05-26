@@ -6,7 +6,9 @@ import { usersCheck } from "./whitebox/users.js";
 import { tlsCheck } from "./blackbox/tls.js";
 import { headersCheck } from "./blackbox/headers.js";
 import { cookiesCheck } from "./blackbox/cookies.js";
+import { hardeningCheck } from "./blackbox/hardening.js";
 import { endpointsCheck } from "./blackbox/endpoints.js";
+import { jwksCheck } from "./blackbox/jwks.js";
 import { wellKnownCheck } from "./blackbox/wellKnown.js";
 import { versionCheck } from "./blackbox/version.js";
 import { cveCheck } from "./blackbox/cve.js";
@@ -22,7 +24,9 @@ export const allChecks: Check[] = [
   tlsCheck,
   headersCheck,
   cookiesCheck,
+  hardeningCheck,
   endpointsCheck,
+  jwksCheck,
   wellKnownCheck,
   versionCheck,
   cveCheck,

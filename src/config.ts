@@ -17,9 +17,13 @@ export function loadConfig(overrides: Partial<AuditConfig> = {}): AuditConfig {
     );
   }
 
+  const realm = overrides.realm?.trim() || process.env.KC_REALM?.trim() || "master";
+
   return {
     baseUrl: stripTrailingSlash(baseUrl),
-    realm: overrides.realm ?? process.env.KC_REALM ?? "master",
+    realm,
+    adminRealm:
+      overrides.adminRealm?.trim() || process.env.KC_ADMIN_REALM?.trim() || realm,
     version: (overrides.version ?? process.env.KC_VERSION)?.trim() || undefined,
     tlsVerify:
       overrides.tlsVerify ??

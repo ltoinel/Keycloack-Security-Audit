@@ -34,7 +34,8 @@ program
   .description("Security audit of a Keycloak server (configuration + external tests).")
   .argument("[url]", "Keycloak base URL (alternative to --url or KC_BASE_URL)")
   .option("-u, --url <url>", "Keycloak base URL (otherwise positional argument or KC_BASE_URL)")
-  .option("-r, --realm <realm>", "Realm to audit (otherwise KC_REALM)")
+  .option("-r, --realm <realm>", "Realm to audit (otherwise KC_REALM, default master)")
+  .option("--admin-realm <realm>", "Realm to authenticate the Admin API against (otherwise KC_ADMIN_REALM, default: the audited realm)")
   .option(
     "-m, --mode <mode>",
     "Test scope: all | whitebox | blackbox",
@@ -88,13 +89,15 @@ function normalizeMode(raw: string): "all" | "white" | "black" {
   }
 }
 
-// URL: positional argument > --url option > KC_BASE_URL (handled in loadConfig).
+// URL: --url option > positional argument > KC_BASE_URL (handled in loadConfig).
+// The realm is taken ONLY from --realm (or KC_REALM), never positionally.
 const positionalUrl = program.args[0];
 
 async function main() {
   const cfg = loadConfig({
     baseUrl: opts.url ?? positionalUrl,
     realm: opts.realm,
+    adminRealm: opts.adminRealm,
     tlsVerify: tlsVerifyOverride,
     version: opts.kcVersion,
   });
@@ -124,7 +127,9 @@ async function main() {
     if (hasAdminCredentials(cfg)) {
       try {
         ctx.admin = await createAdminApi(cfg);
-        console.log("✅ Admin API authentication succeeded (white-box checks active).");
+        console.log(
+          `✅ Admin API authentication succeeded against realm "${cfg.adminRealm}" (white-box checks active).`,
+        );
       } catch (err) {
         console.warn(
           `⚠️  Admin API unavailable: ${

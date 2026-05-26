@@ -159,6 +159,33 @@ export const clientsCheck: Check = {
           }),
         );
       }
+
+      // --- Weak per-client token signing algorithm -----------------------
+      const weakAlgs: string[] = [];
+      let algNone = false;
+      for (const [label, attr] of [
+        ["id_token", "id.token.signed.response.alg"],
+        ["access_token", "access.token.signed.response.alg"],
+      ] as const) {
+        const a = c.attributes?.[attr];
+        if (!a) continue;
+        if (/^none$/i.test(a)) {
+          algNone = true;
+          weakAlgs.push(`${label}=none`);
+        } else if (/^hs/i.test(a)) {
+          weakAlgs.push(`${label}=${a}`);
+        }
+      }
+      if (weakAlgs.length) {
+        out.push(
+          finding("client.token-signing-alg", {
+            resource: c.clientId,
+            severity: algNone ? "high" : "medium",
+            status: algNone ? "fail" : "warn",
+            detail: `Client "${c.clientId}" uses a weak token signing algorithm: ${weakAlgs.join(", ")}.`,
+          }),
+        );
+      }
     }
 
     if (out.length === 0) {

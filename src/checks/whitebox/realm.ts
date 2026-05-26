@@ -33,6 +33,9 @@ interface RealmRep {
   webAuthnPolicyUserVerificationRequirement?: string;
   webAuthnPolicyAttestationConveyancePreference?: string;
   webAuthnPolicySignatureAlgorithms?: string[];
+  webAuthnPolicyPasswordlessUserVerificationRequirement?: string;
+  webAuthnPolicyPasswordlessAttestationConveyancePreference?: string;
+  smtpServer?: Record<string, string>;
   browserSecurityHeaders?: Record<string, string>;
 }
 
@@ -264,6 +267,33 @@ export const realmCheck: Check = {
         severity: "low",
         status: uv === "discouraged" ? "warn" : "pass",
         detail: `WebAuthn: userVerification=${uv ?? "(default)"}, attestation=${realm.webAuthnPolicyAttestationConveyancePreference ?? "(default)"}.`,
+      }),
+    );
+
+    // --- WebAuthn passwordless policy ------------------------------------
+    const pwlUv = realm.webAuthnPolicyPasswordlessUserVerificationRequirement;
+    out.push(
+      finding("realm.webauthn-passwordless", {
+        resource: realm.realm,
+        severity: "low",
+        status: !pwlUv || pwlUv === "required" ? "pass" : "warn",
+        detail: `Passwordless WebAuthn: userVerification=${pwlUv ?? "(default)"}, attestation=${realm.webAuthnPolicyPasswordlessAttestationConveyancePreference ?? "(default)"}.`,
+      }),
+    );
+
+    // --- SMTP / email transport ------------------------------------------
+    const smtp = realm.smtpServer ?? {};
+    const smtpTls = smtp.ssl === "true" || smtp.starttls === "true";
+    out.push(
+      finding("realm.smtp", {
+        resource: realm.realm,
+        severity: "low",
+        status: smtp.host ? (smtpTls ? "pass" : "warn") : "warn",
+        detail: smtp.host
+          ? smtpTls
+            ? `SMTP over TLS (host=${smtp.host}, ssl=${smtp.ssl ?? "false"}, starttls=${smtp.starttls ?? "false"}).`
+            : `SMTP host ${smtp.host} configured without TLS (ssl/starttls disabled).`
+          : "No SMTP server configured; email verification and password reset cannot work.",
       }),
     );
 

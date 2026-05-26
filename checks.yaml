@@ -22,7 +22,9 @@ modules:
   tls: true
   headers: true
   cookies: true
+  hardening: true
   endpoints: true
+  jwks: true
   well-known: true
   version: true
   cve: true
@@ -141,6 +143,20 @@ checks:
     recommendation: For passwordless/strong MFA, require user verification and a sound attestation policy.
     references:
       - https://www.keycloak.org/docs/latest/server_admin/
+  realm.webauthn-passwordless:
+    enabled: true
+    category: Realm
+    title: WebAuthn passwordless policy
+    recommendation: Require user verification for the passwordless WebAuthn policy (it replaces the password).
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.smtp:
+    enabled: true
+    category: Realm
+    title: SMTP / email transport
+    recommendation: Configure an SMTP server over TLS (ssl or starttls) so email verification and reset work securely.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
 
   # --- Auditing -------------------------------------------------------------
   realm.login-events:
@@ -220,6 +236,13 @@ checks:
     category: Clients
     title: Non-TLS client URL
     recommendation: Use https for the client root/base/admin URLs (http is acceptable only for localhost).
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients
+  client.token-signing-alg:
+    enabled: true
+    category: Clients
+    title: Weak token signing algorithm
+    recommendation: Use an asymmetric signature (RS256/ES256) for id and access tokens; never "none" or HS*.
     references:
       - https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients
   client.master-realm:
@@ -373,6 +396,23 @@ checks:
     title: Cookie SameSite attribute
     recommendation: Set SameSite (Lax or Strict) on session cookies to mitigate CSRF.
 
+  # --- Hardening ------------------------------------------------------------
+  hardening.server-header:
+    enabled: true
+    category: Information disclosure
+    title: Server technology disclosure
+    recommendation: Strip or genericize the Server / X-Powered-By headers at the reverse proxy.
+  hardening.http-redirect:
+    enabled: true
+    category: TLS / Network
+    title: HTTP to HTTPS redirect
+    recommendation: Redirect all plaintext HTTP to HTTPS (or do not expose an HTTP listener at all).
+  hardening.login-clickjacking:
+    enabled: true
+    category: HTTP Headers
+    title: Login page clickjacking protection
+    recommendation: "Send X-Frame-Options: SAMEORIGIN or a CSP frame-ancestors directive on the login page."
+
   # --- Exposed endpoints ----------------------------------------------------
   endpoint.metrics:
     enabled: true
@@ -389,6 +429,17 @@ checks:
     category: Exposed endpoints
     title: Admin console reachable
     recommendation: Restrict access (IP allowlist / VPN / reverse proxy) in addition to authentication.
+
+  # --- JWKS / signing keys --------------------------------------------------
+  jwks.fetch:
+    enabled: true
+    category: Keys & Tokens
+    title: JWKS endpoint
+  jwks.key-strength:
+    enabled: true
+    category: Keys & Tokens
+    title: Published key strength
+    recommendation: Use RSA keys of at least 2048 bits (or EC P-256+); rotate and retire weak keys.
 
   # --- OIDC Discovery -------------------------------------------------------
   wellknown.fetch:

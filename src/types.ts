@@ -47,6 +47,8 @@ export interface Check {
 export interface AuditConfig {
   baseUrl: string;
   realm: string;
+  /** Realm used to authenticate the Admin API (defaults to the audited realm) */
+  adminRealm: string;
   tlsVerify: boolean;
   /** Keycloak version provided manually (CLI/env) */
   version?: string;

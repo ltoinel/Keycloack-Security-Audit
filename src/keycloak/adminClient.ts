@@ -8,16 +8,17 @@ interface TokenResponse {
 }
 
 /**
- * Authenticates against the master realm token endpoint and returns an Admin
- * REST API client. Tries the client_credentials grant first (service account),
- * then falls back to the password grant.
+ * Authenticates against the configured admin realm's token endpoint
+ * (`cfg.adminRealm`, default = the audited realm) and returns an Admin REST API
+ * client. Tries the client_credentials grant first (service account), then
+ * falls back to the password grant.
  *
  * Throws an explicit error if no authentication succeeds; the caller can then
  * fall back to black-box mode only.
  */
 export async function createAdminApi(cfg: AuditConfig): Promise<AdminApi> {
   const dispatcher = dispatcherFor(cfg.tlsVerify);
-  const tokenUrl = `${cfg.baseUrl}/realms/master/protocol/openid-connect/token`;
+  const tokenUrl = `${cfg.baseUrl}/realms/${cfg.adminRealm}/protocol/openid-connect/token`;
 
   const token = await fetchToken(cfg, tokenUrl, dispatcher);
 

@@ -38,6 +38,10 @@ Fill in `.env` (see `.env.example`). For white-box, two authentication modes:
    on a confidential client holding the `view-realm` / `view-clients` roles.
 2. **Admin account**: `KC_ADMIN_USER` + `KC_ADMIN_PASSWORD` (password grant via `admin-cli`).
 
+Authentication targets the **audited realm** by default. If your credentials live in
+another realm (e.g. a `master` admin auditing a different realm), set the auth realm with
+`--admin-realm` or `KC_ADMIN_REALM`.
+
 Without credentials, only the black-box checks run.
 
 ## Usage
@@ -46,10 +50,10 @@ Without credentials, only the black-box checks run.
 # Full audit (config + external), reading .env
 npm run audit
 
-# URL passed directly as an argument (no --url or .env)
+# URL as a positional argument; realm via --realm (default: master)
 npm run audit -- https://auth.example.com --realm prod
 
-# Command-line overrides (--url is equivalent to the positional argument)
+# Command-line overrides (--url is equivalent to the positional URL argument)
 npm run audit -- --url https://auth.example.com --realm prod --mode all
 
 # Configuration only (Admin API, requires credentials)
@@ -92,6 +96,7 @@ npm test   # native Node runner, no dependencies: semver, redirect URIs, passwor
 |---|---|---|
 | `-u, --url` | Keycloak base URL | `KC_BASE_URL` |
 | `-r, --realm` | Realm to audit | `KC_REALM` or `master` |
+| `--admin-realm` | Realm to authenticate the Admin API against | `KC_ADMIN_REALM` or the audited realm |
 | `-m, --mode` | Scope: `all` \| `whitebox` \| `blackbox` (aliases `white`/`black`) | `all` |
 | `-o, --out` | Output directory | `reports` |
 | `-f, --format` | `html,md,json,sarif` or `all` (comma-separated list) | `html,md` |
@@ -105,18 +110,21 @@ npm test   # native Node runner, no dependencies: semver, redirect URIs, passwor
 **White-box** (`src/checks/whitebox/`): SSL required, brute-force (on/off **and** tuning),
 password policy, password hashing strength, token lifespan, refresh token rotation,
 SSO/offline session lifespans, self-registration, email verification, realm CSP,
-OTP & WebAuthn policy, login & admin event logging (auditing) · Implicit flow, ROPC, PKCE,
-redirect URIs, Web Origins CORS, service accounts on public clients, full-scope tokens,
-consent, non-TLS client URLs, application clients in the master realm · signing algorithm,
-key presence/rotation · predictable admin accounts, MFA coverage (OTP **and**
-WebAuthn/passkey, sampled), disabled accounts.
+OTP & WebAuthn policy (two-factor **and** passwordless), SMTP/email transport,
+login & admin event logging (auditing) · Implicit flow, ROPC, PKCE, redirect URIs,
+Web Origins CORS, service accounts on public clients, full-scope tokens, consent,
+non-TLS client URLs, per-client token signing algorithm, application clients in the
+master realm · signing algorithm, key presence/rotation · predictable admin accounts,
+MFA coverage (OTP **and** WebAuthn/passkey, sampled), disabled accounts.
 
 **Black-box** (`src/checks/blackbox/`): TLS version/protocol, certificate validity and
-expiry, HSTS / X-Frame-Options / X-Content-Type-Options / CSP / Referrer-Policy,
-session cookie flags (Secure / HttpOnly / SameSite), exposed `/metrics` and `/health`
-endpoints (also probed on the **management port 9000**), admin console reachability,
-OIDC discovery (`alg none`, PKCE, implicit), passive version detection,
-**CVE correlation** (GitHub Security Advisories, paginated).
+expiry, HTTP→HTTPS redirect, HSTS / X-Frame-Options / X-Content-Type-Options / CSP /
+Referrer-Policy, login-page clickjacking, session cookie flags (Secure / HttpOnly /
+SameSite), server-technology disclosure, exposed `/metrics` and `/health` endpoints
+(also probed on the **management port 9000**), admin console reachability (content-verified,
+not just a redirect), published key strength (JWKS), OIDC discovery (`alg none`, PKCE,
+implicit), passive version detection, **CVE correlation** (GitHub Security Advisories,
+paginated).
 
 ## Customizing checks (`checks.yaml`)
 
