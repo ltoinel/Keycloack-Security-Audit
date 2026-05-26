@@ -11,6 +11,7 @@
   "bugs": {
     "url": "https://github.com/ltoinel/Keycloack-Security-Audit/issues"
   },
+  "license": "MIT",
   "bin": {
     "keycloak-security-audit": "./dist/index.js"
   },

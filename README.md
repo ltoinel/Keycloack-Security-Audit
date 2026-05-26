@@ -126,3 +126,7 @@ Automated, **non-exhaustive** audit. It does not replace a manual penetration te
 not deeply test SAML, federation/IdP, or the clients' application logic. MFA coverage is
 **sampled** (50 accounts) and CVE correlation is limited to the 100 most recent GitHub
 advisories for Keycloak packages — cross-check with the NVD and the Release Notes.
+
+## License
+
+Released under the [MIT License](LICENSE).
