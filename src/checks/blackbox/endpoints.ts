@@ -27,6 +27,21 @@ function candidateOrigins(baseUrl: string): string[] {
   ];
 }
 
+/**
+ * Confirms a response is genuinely the Keycloak admin console SPA — not a
+ * redirect, an SSO/login portal or a generic page. Across versions the console
+ * bootstraps its assets from `/resources/<version>/admin/...`.
+ */
+export function looksLikeAdminConsole(body: string, contentType: string): boolean {
+  const isHtml = contentType.includes("text/html") || /<html/i.test(body);
+  const hasMarker =
+    /\/resources\/[^"']+\/admin/i.test(body) ||
+    /<title>[^<]*keycloak/i.test(body) ||
+    /administration console/i.test(body) ||
+    /id=["']?keycloak["']?/i.test(body);
+  return isHtml && hasMarker;
+}
+
 export const endpointsCheck: Check = {
   name: "endpoints",
   mode: "black",
@@ -59,19 +74,34 @@ export const endpointsCheck: Check = {
       );
     }
 
-    // --- Admin console: informational -------------------------------------
+    // --- Admin console: confirm the real console is served (not a redirect) ---
     const consoleUrl = `${ctx.baseUrl}/admin/master/console/`;
     const res = await safeFetch(consoleUrl, { redirect: "manual", dispatcher });
-    const reachable =
-      !("error" in res) && [200, 301, 302, 303].includes(res.status);
+
+    let consoleStatus: "warn" | "pass" = "pass";
+    let consoleDetail: string;
+    if ("error" in res) {
+      consoleDetail = "Admin console not reachable from the scanner.";
+    } else if (res.status >= 300 && res.status < 400) {
+      // A redirect is not the console itself (HTTP->HTTPS, SSO portal, proxy...).
+      const loc = res.headers.get("location") ?? "(unknown)";
+      consoleDetail = `Path returns an HTTP ${res.status} redirect to ${loc} — not the admin console itself.`;
+    } else if (
+      res.status === 200 &&
+      looksLikeAdminConsole(res.body, res.headers.get("content-type") ?? "")
+    ) {
+      consoleStatus = "warn";
+      consoleDetail =
+        "The admin console is served and publicly reachable. Not blocking if protected by authentication + MFA, but reducing its exposure surface is recommended.";
+    } else {
+      consoleDetail = `Path returns HTTP ${res.status} but the response is not the admin console page.`;
+    }
     out.push(
       finding("endpoint.admin-console", {
         resource: consoleUrl,
         severity: "info",
-        status: reachable ? "warn" : "pass",
-        detail: reachable
-          ? "The admin console is publicly reachable. Not blocking if protected by authentication + MFA, but reducing its exposure surface is recommended."
-          : "Admin console not reachable from the scanner.",
+        status: consoleStatus,
+        detail: consoleDetail,
       }),
     );
 
