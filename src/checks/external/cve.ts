@@ -1,9 +1,8 @@
 import type { Check, Finding, Severity } from "../../types.js";
 import { finding } from "../helpers.js";
+import { categoryOf } from "../registry.js";
 import { resolveKeycloakVersion } from "./detectVersion.js";
 import { satisfiesRange } from "./semver.js";
-
-const CAT = "CVE / Known vulnerabilities";
 
 /** Keycloak Maven packages monitored via the GitHub advisories API. */
 const KC_PACKAGES = [
@@ -39,10 +38,7 @@ function parseNextLink(link: string | null): string | null {
 }
 
 function apiError(resource: string, detail: string): Finding {
-  return finding({
-    id: "cve.api-error",
-    title: "CVE correlation",
-    category: CAT,
+  return finding("cve.api-error", {
     resource,
     severity: "info",
     status: "error",
@@ -70,13 +66,11 @@ export const cveCheck: Check = {
   name: "cve",
   mode: "black",
   async run(ctx): Promise<Finding[]> {
+    const CAT = categoryOf("cve.clean", "CVE / Known vulnerabilities");
     const version = await resolveKeycloakVersion(ctx);
     if (!version) {
       return [
-        finding({
-          id: "cve.no-version",
-          title: "CVE correlation",
-          category: CAT,
+        finding("cve.no-version", {
           resource: ctx.baseUrl,
           severity: "info",
           status: "skipped",
@@ -112,16 +106,26 @@ export const cveCheck: Check = {
         res = await fetch(next, { headers });
       } catch (err) {
         if (advisories.length === 0) {
-          return [apiError(firstUrl, `GitHub API call failed: ${
-            err instanceof Error ? err.message : String(err)
-          }.`)];
+          return [
+            apiError(
+              firstUrl,
+              `GitHub API call failed: ${
+                err instanceof Error ? err.message : String(err)
+              }.`,
+            ),
+          ];
         }
         partial = true;
         break;
       }
       if (!res.ok) {
         if (advisories.length === 0) {
-          return [apiError(firstUrl, `GitHub advisories API unavailable (HTTP ${res.status}). Rate limit? Set GITHUB_TOKEN.`)];
+          return [
+            apiError(
+              firstUrl,
+              `GitHub advisories API unavailable (HTTP ${res.status}). Rate limit? Set GITHUB_TOKEN.`,
+            ),
+          ];
         }
         partial = true; // use the pages already fetched
         break;
@@ -144,8 +148,7 @@ export const cveCheck: Check = {
 
       const id = adv.cve_id ?? adv.ghsa_id;
       out.push(
-        finding({
-          id: `cve.${adv.ghsa_id}`,
+        finding(`cve.${adv.ghsa_id}`, {
           title: `${id} — ${adv.summary ?? "Keycloak vulnerability"}`,
           category: CAT,
           resource: `keycloak ${version}`,
@@ -164,19 +167,19 @@ export const cveCheck: Check = {
 
     if (out.length === 0) {
       out.push(
-        finding({
-          id: "cve.clean",
-          title: "CVE correlation",
-          category: CAT,
+        finding("cve.clean", {
           resource: `keycloak ${version}`,
           severity: "info",
           status: "pass",
           detail: `No known GitHub advisory matches version ${version} (${advisories.length} advisory(ies) reviewed across ${pages} page(s)${
             partial ? ", PARTIAL analysis — see recommendation" : ""
           }).`,
-          recommendation: partial
-            ? "Incomplete list (rate limit or pagination cap reached): set GITHUB_TOKEN and cross-check with the NVD / Keycloak Release Notes."
-            : "Indicative audit: cross-check with the Keycloak Release Notes and the NVD.",
+          ...(partial
+            ? {
+                recommendation:
+                  "Incomplete list (rate limit or pagination cap reached): set GITHUB_TOKEN and cross-check with the NVD / Keycloak Release Notes.",
+              }
+            : {}),
         }),
       );
     }

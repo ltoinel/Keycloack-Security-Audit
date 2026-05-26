@@ -98,6 +98,7 @@ npm test   # native Node runner, no dependencies: semver, redirect URIs, passwor
 | `--no-tls-verify` | Disable TLS verification | (verifies) |
 | `--fail-on` | Failure threshold: `critical`\|`high`\|`medium` | `high` |
 | `--kc-version` | Keycloak version for CVE correlation | `KC_VERSION` or passive detection |
+| `-c, --config` | Path to the checks configuration (YAML) | `./checks.yaml` or bundled default |
 
 ## Implemented checks
 
@@ -112,6 +113,53 @@ expiry, HSTS / X-Frame-Options / X-Content-Type-Options / CSP / Referrer-Policy,
 exposed `/metrics` and `/health` endpoints (also probed on the **management port 9000**),
 admin console reachability, OIDC discovery (`alg none`, PKCE, implicit), passive version
 detection, **CVE correlation** (GitHub Security Advisories, paginated).
+
+## Customizing checks (`checks.yaml`)
+
+All checks are described in [`checks.yaml`](checks.yaml), so you can tune them without
+editing code. Point to a different file with `-c, --config`; otherwise the tool uses
+`./checks.yaml` (or the bundled default).
+
+```yaml
+modules:
+  cve: false            # disable a whole module (by its name)
+
+checks:
+  client.implicit-flow:
+    enabled: false      # disable a single check
+  realm.password-policy:
+    title: Weak password policy          # customize the displayed text
+    category: Authentication             # move it to another report section
+    recommendation: Require length(14)+ and a blacklist.
+    references:
+      - https://example.com/our-policy
+```
+
+Configurable per check: `enabled`, `title`, `category`, `recommendation`, `references`.
+For most checks, **severity**, **status** (pass/warn/fail) and **detail** are computed at
+runtime by the check logic and are not set here. Disabling a module skips it entirely;
+disabling a single check removes its findings from every report and from the score.
+
+### HTTP header rules
+
+The HTTP header checks are fully data-driven: any entry with a `header` field is a header
+rule (its `severity` and expected value live in the config too), so you can add, retune or
+remove header checks without touching the code.
+
+```yaml
+checks:
+  headers.permissions-policy:        # add a brand-new header check
+    enabled: true
+    category: HTTP Headers
+    title: Permissions-Policy
+    recommendation: Set a restrictive Permissions-Policy.
+    header: permissions-policy        # response header to inspect
+    severity: low
+    # expect: how the value is validated (omit for "presence is enough")
+    #   equals: <value>      case-insensitive equality
+    #   regex: <pattern>     case-insensitive regular expression
+    #   minMaxAge: <seconds> HSTS — the max-age directive must be >= this
+```
 
 ## Scoring & risk weighting
 

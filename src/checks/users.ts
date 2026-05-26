@@ -1,9 +1,6 @@
 import type { Check, Finding } from "../types.js";
 import { finding } from "./helpers.js";
 
-const CAT = "User accounts";
-const DOC = "https://www.keycloak.org/docs/latest/server_admin/#user-management";
-
 /** Predictable administrative usernames to flag. */
 const PREDICTABLE_ADMINS = new Set([
   "admin",
@@ -46,10 +43,7 @@ export const usersCheck: Check = {
       PREDICTABLE_ADMINS.has((u.username ?? "").toLowerCase()),
     );
     out.push(
-      finding({
-        id: "users.predictable-admin",
-        title: "Predictable admin account name",
-        category: CAT,
+      finding("users.predictable-admin", {
         resource: ctx.realm,
         severity: predictable.length ? "medium" : "low",
         status: predictable.length ? "warn" : "pass",
@@ -58,9 +52,6 @@ export const usersCheck: Check = {
               .map((u) => u.username)
               .join(", ")}. Easy target for brute-force / password spraying.`
           : "No trivial administrative account name detected.",
-        recommendation:
-          "Rename admin accounts, disable/remove default accounts, and enforce MFA on them.",
-        references: [DOC],
       }),
     );
 
@@ -90,10 +81,7 @@ export const usersCheck: Check = {
 
     if (!credentialsReadable || probed === 0) {
       out.push(
-        finding({
-          id: "users.mfa-coverage",
-          title: "MFA coverage (OTP/WebAuthn)",
-          category: CAT,
+        finding("users.mfa-coverage", {
           resource: ctx.realm,
           severity: "info",
           status: "skipped",
@@ -101,7 +89,6 @@ export const usersCheck: Check = {
             "Unable to read credentials (does the service account have the view-users role?).",
           recommendation:
             "Grant the view-users role to the audit account to assess MFA coverage.",
-          references: [DOC],
         }),
       );
     } else {
@@ -116,10 +103,7 @@ export const usersCheck: Check = {
           : "low";
       const preview = withoutMfa.slice(0, 8).join(", ");
       out.push(
-        finding({
-          id: "users.mfa-coverage",
-          title: "MFA coverage (OTP/WebAuthn)",
-          category: CAT,
+        finding("users.mfa-coverage", {
           resource: ctx.realm,
           severity,
           status: withoutMfa.length ? "warn" : "pass",
@@ -128,10 +112,12 @@ export const usersCheck: Check = {
                 isMaster ? " (master realm = admin accounts)" : ""
               }: ${preview}${withoutMfa.length > 8 ? "…" : ""}.`
             : `All ${probed} probed account(s) have a second factor (OTP or WebAuthn) configured.`,
-          recommendation: isMaster
-            ? "Require OTP/MFA for all administrators of the master realm (required action or auth flow)."
-            : "Require or strongly encourage MFA, at minimum for privileged accounts.",
-          references: [DOC],
+          ...(isMaster
+            ? {
+                recommendation:
+                  "Require OTP/MFA for all administrators of the master realm (required action or auth flow).",
+              }
+            : {}),
         }),
       );
     }
@@ -140,15 +126,11 @@ export const usersCheck: Check = {
     const disabled = users.filter((u) => u.enabled === false).length;
     if (disabled > 0) {
       out.push(
-        finding({
-          id: "users.disabled",
-          title: "Disabled accounts present",
-          category: CAT,
+        finding("users.disabled", {
           resource: ctx.realm,
           severity: "info",
           status: "pass",
           detail: `${disabled} disabled account(s) — consider purging obsolete accounts.`,
-          references: [DOC],
         }),
       );
     }

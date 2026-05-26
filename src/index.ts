@@ -5,6 +5,11 @@ import { Command } from "commander";
 import { loadConfig, hasAdminCredentials } from "./config.js";
 import { createAdminApi } from "./keycloak/adminClient.js";
 import { allChecks } from "./checks/index.js";
+import {
+  loadChecksConfig,
+  isModuleEnabled,
+  isCheckEnabled,
+} from "./checks/registry.js";
 import type { CheckContext, Finding } from "./types.js";
 import { renderHtml } from "./report/html.js";
 import { renderMarkdown } from "./report/markdown.js";
@@ -46,6 +51,10 @@ program
   .option(
     "--kc-version <version>",
     "Keycloak version to audit against for CVE correlation (otherwise KC_VERSION or passive detection)",
+  )
+  .option(
+    "-c, --config <file>",
+    "Path to the checks configuration (otherwise ./checks.yaml or the bundled default)",
   )
   .parse();
 
@@ -90,11 +99,14 @@ async function main() {
     version: opts.kcVersion,
   });
 
+  const configPath = loadChecksConfig(opts.config as string | undefined);
+
   const mode = normalizeMode(opts.mode as string);
   const modeLabel = { all: "all", white: "whitebox", black: "blackbox" }[mode];
   console.log(
-    `\n🔎 Keycloak Security Audit — auditing ${cfg.baseUrl} (realm: ${cfg.realm}, scope: ${modeLabel})\n`,
+    `\n🔎 Keycloak Security Audit — auditing ${cfg.baseUrl} (realm: ${cfg.realm}, scope: ${modeLabel})`,
   );
+  console.log(`   Checks config: ${configPath}\n`);
   if (cfg.version) {
     console.log(`📌 Keycloak version (provided): ${cfg.version}\n`);
   }
@@ -129,7 +141,9 @@ async function main() {
   }
 
   // --- Check selection and execution -------------------------------------
+  // A module disabled in checks.yaml is skipped entirely.
   const selected = allChecks.filter((c) => {
+    if (!isModuleEnabled(c.name)) return false;
     if (mode === "white") return c.mode === "white";
     if (mode === "black") return c.mode === "black";
     return true;
@@ -149,7 +163,8 @@ async function main() {
       continue;
     }
     try {
-      const res = await check.run(ctx);
+      // Individually disabled checks (checks.yaml) are filtered out.
+      const res = (await check.run(ctx)).filter((f) => isCheckEnabled(f.id));
       findings.push(...res);
       process.stdout.write(`  • ${check.name}: ${res.length} finding(s)\n`);
     } catch (err) {

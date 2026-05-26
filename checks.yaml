@@ -1,0 +1,325 @@
+# Keycloak Security Audit — check configuration
+# ---------------------------------------------------------------------------
+# This file lets you customize and toggle the audit checks without touching the
+# code. Override the path with `--config <file>`.
+#
+#   modules:  enable/disable a whole check module (by its name).
+#   checks:   per-check text and toggle, keyed by the stable finding id.
+#             - enabled:        include this check (default: true)
+#             - title:          human-readable title shown in reports
+#             - category:       report section the finding belongs to
+#             - recommendation: remediation advice
+#             - references:     external documentation links
+#
+# Note: a finding's severity, status (pass/warn/fail) and detail are computed
+# at runtime by the check logic and are not configured here.
+
+modules:
+  realm: true
+  clients: true
+  keys: true
+  users: true
+  tls: true
+  headers: true
+  endpoints: true
+  well-known: true
+  version: true
+  cve: true
+
+checks:
+  # --- Realm ----------------------------------------------------------------
+  realm.ssl-required:
+    enabled: true
+    category: Realm
+    title: SSL/HTTPS required
+    recommendation: 'Set sslRequired to "all" to enforce HTTPS, including on the internal network.'
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.brute-force:
+    enabled: true
+    category: Realm
+    title: Brute-force protection
+    recommendation: Enable brute-force protection with a reasonable failureFactor (e.g. 5 to 10).
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.password-policy:
+    enabled: true
+    category: Realm
+    title: Password policy
+    recommendation: Define at least length(12), notUsername, and ideally passwordHistory + a blacklist.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.access-token-lifespan:
+    enabled: true
+    category: Realm
+    title: Access token lifespan
+    recommendation: Keep the access token short (<= 300s) and rely on the refresh token.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.refresh-token-rotation:
+    enabled: true
+    category: Realm
+    title: Refresh token revocation / rotation
+    recommendation: Enable refresh token revocation (rotation) to limit replay attacks.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.duplicate-emails:
+    enabled: true
+    category: Realm
+    title: Duplicate emails allowed
+    recommendation: Disallow duplicate emails unless there is an explicit business need.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.verify-email:
+    enabled: true
+    category: Realm
+    title: Email verification
+    recommendation: Enable email verification to strengthen account identity.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.self-registration:
+    enabled: true
+    category: Realm
+    title: Self-registration enabled
+    recommendation: Disable self-registration if the realm is intended for internal users.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+  realm.csp:
+    enabled: true
+    category: Realm
+    title: Content-Security-Policy
+    recommendation: "Keep a restrictive CSP (frame-ancestors 'self') to limit clickjacking."
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/
+
+  # --- Clients --------------------------------------------------------------
+  client.implicit-flow:
+    enabled: true
+    category: Clients
+    title: Implicit Flow enabled
+    recommendation: Disable the Implicit Flow and use the Standard Flow + PKCE.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients
+  client.direct-access-grants:
+    enabled: true
+    category: Clients
+    title: Direct Access Grants (ROPC) enabled
+    recommendation: Disable ROPC unless a legacy use case justifies it; prefer the authorization code flow.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients
+  client.pkce:
+    enabled: true
+    category: Clients
+    title: PKCE on public client
+    recommendation: 'Enforce PKCE with the S256 method (attribute pkce.code.challenge.method = "S256").'
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients
+  client.public-service-account:
+    enabled: true
+    category: Clients
+    title: Service account on public client
+    recommendation: A service account requires a confidential client with authentication.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients
+  client.redirect-uris:
+    enabled: true
+    category: Clients
+    title: Overly permissive redirect URI
+    recommendation: List exact HTTPS URIs, without domain wildcards or non-local http.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients
+  client.web-origins:
+    enabled: true
+    category: Clients
+    title: Web Origins CORS = *
+    recommendation: "Restrict Web Origins to the application's domains."
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#_oidc_clients
+  client.ok:
+    enabled: true
+    category: Clients
+    title: Client configuration
+
+  # --- Keys & Tokens --------------------------------------------------------
+  keys.signature-algorithm:
+    enabled: true
+    category: Keys & Tokens
+    title: Token signature algorithm
+    recommendation: Use a strong asymmetric signature (RS256/ES256). Avoid HS256 shared across clients.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#realm_keys
+  keys.active-present:
+    enabled: true
+    category: Keys & Tokens
+    title: Active signature key
+    recommendation: Verify regular rotation of the realm's signature keys.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#realm_keys
+
+  # --- User accounts --------------------------------------------------------
+  users.predictable-admin:
+    enabled: true
+    category: User accounts
+    title: Predictable admin account name
+    recommendation: Rename admin accounts, disable/remove default accounts, and enforce MFA on them.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#user-management
+  users.mfa-coverage:
+    enabled: true
+    category: User accounts
+    title: MFA coverage (OTP/WebAuthn)
+    recommendation: Require or strongly encourage MFA, at minimum for privileged accounts.
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#user-management
+  users.disabled:
+    enabled: true
+    category: User accounts
+    title: Disabled accounts present
+    references:
+      - https://www.keycloak.org/docs/latest/server_admin/#user-management
+
+  # --- TLS / Network --------------------------------------------------------
+  tls.https:
+    enabled: true
+    category: TLS / Network
+    title: HTTPS on the endpoint
+    recommendation: Serve Keycloak exclusively over HTTPS.
+  tls.connect:
+    enabled: true
+    category: TLS / Network
+    title: TLS connection
+  tls.version:
+    enabled: true
+    category: TLS / Network
+    title: TLS protocol version
+    recommendation: Disable TLS < 1.2; aim for TLS 1.2/1.3 only.
+  tls.cert-valid:
+    enabled: true
+    category: TLS / Network
+    title: Trusted TLS certificate
+    recommendation: Use a certificate issued by a recognized CA and not expired.
+  tls.cert-expiry:
+    enabled: true
+    category: TLS / Network
+    title: Certificate expiry
+    recommendation: Renew the certificate / automate renewal.
+
+  # --- HTTP Headers ---------------------------------------------------------
+  # Entries with a `header` field are HTTP header rules: the check is driven
+  # entirely from here (header name, severity and the expected value). Add a
+  # new entry with a `header` field to audit an extra response header.
+  #   expect.equals    case-insensitive equality
+  #   expect.regex     case-insensitive regular expression
+  #   expect.minMaxAge HSTS: the max-age directive must be >= this value
+  # No `expect` means the header only needs to be present.
+  headers.fetch:
+    enabled: true
+    category: HTTP Headers
+    title: Header retrieval
+  headers.hsts:
+    enabled: true
+    category: HTTP Headers
+    title: Strict-Transport-Security (HSTS)
+    recommendation: Add HSTS with max-age >= 31536000 (1 year).
+    header: strict-transport-security
+    severity: medium
+    expect:
+      minMaxAge: 31536000
+  headers.x-content-type:
+    enabled: true
+    category: HTTP Headers
+    title: X-Content-Type-Options
+    recommendation: "Set X-Content-Type-Options: nosniff."
+    header: x-content-type-options
+    severity: low
+    expect:
+      equals: nosniff
+  headers.x-frame-options:
+    enabled: true
+    category: HTTP Headers
+    title: X-Frame-Options
+    recommendation: "Set X-Frame-Options: SAMEORIGIN (anti-clickjacking)."
+    header: x-frame-options
+    severity: medium
+    expect:
+      regex: "sameorigin|deny"
+  headers.csp:
+    enabled: true
+    category: HTTP Headers
+    title: Content-Security-Policy
+    recommendation: Serve a restrictive CSP including frame-ancestors.
+    header: content-security-policy
+    severity: medium
+  headers.referrer-policy:
+    enabled: true
+    category: HTTP Headers
+    title: Referrer-Policy
+    recommendation: Set a Referrer-Policy (e.g. no-referrer or strict-origin).
+    header: referrer-policy
+    severity: low
+
+  # --- Exposed endpoints ----------------------------------------------------
+  endpoint.metrics:
+    enabled: true
+    category: Exposed endpoints
+    title: /metrics endpoint exposed
+    recommendation: Keep /metrics on the firewalled management listener (9000), never publicly reachable.
+  endpoint.health:
+    enabled: true
+    category: Exposed endpoints
+    title: /health endpoint exposed
+    recommendation: Restrict /health to the internal network / orchestrator.
+  endpoint.admin-console:
+    enabled: true
+    category: Exposed endpoints
+    title: Admin console reachable
+    recommendation: Restrict access (IP allowlist / VPN / reverse proxy) in addition to authentication.
+
+  # --- OIDC Discovery -------------------------------------------------------
+  wellknown.fetch:
+    enabled: true
+    category: OIDC Discovery
+    title: OIDC discovery endpoint
+  wellknown.parse:
+    enabled: true
+    category: OIDC Discovery
+    title: OIDC discovery endpoint
+  wellknown.alg-none:
+    enabled: true
+    category: OIDC Discovery
+    title: '"none" algorithm advertised'
+    recommendation: 'Never allow the "none" algorithm for id_token signing.'
+  wellknown.pkce:
+    enabled: true
+    category: OIDC Discovery
+    title: PKCE supported
+    recommendation: Ensure S256 is offered for PKCE.
+  wellknown.implicit:
+    enabled: true
+    category: OIDC Discovery
+    title: Implicit Flow advertised
+    recommendation: Prefer the code flow; the implicit flow stays advertised by default server-side but should be disabled per client.
+
+  # --- Exposure / Version ---------------------------------------------------
+  version.detected:
+    enabled: true
+    category: Exposure / Version
+    title: Exposed Keycloak version
+    recommendation: Compare this version against published CVEs (see the CVE check) and plan upgrades.
+    references:
+      - https://github.com/keycloak/keycloak/security/advisories
+
+  # --- CVE / Known vulnerabilities ------------------------------------------
+  cve.no-version:
+    enabled: true
+    category: CVE / Known vulnerabilities
+    title: CVE correlation
+  cve.api-error:
+    enabled: true
+    category: CVE / Known vulnerabilities
+    title: CVE correlation
+  cve.clean:
+    enabled: true
+    category: CVE / Known vulnerabilities
+    title: CVE correlation
+    recommendation: "Indicative audit: cross-check with the Keycloak Release Notes and the NVD."

@@ -1,9 +1,6 @@
 import type { Check, Finding } from "../types.js";
 import { finding } from "./helpers.js";
 
-const CAT = "Keys & Tokens";
-const DOC = "https://www.keycloak.org/docs/latest/server_admin/#realm_keys";
-
 interface KeyRep {
   algorithm?: string;
   status?: string;
@@ -34,10 +31,7 @@ export const keysCheck: Check = {
       (k) => k.algorithm && !STRONG_SIG.has(k.algorithm),
     );
     out.push(
-      finding({
-        id: "keys.signature-algorithm",
-        title: "Token signature algorithm",
-        category: CAT,
+      finding("keys.signature-algorithm", {
         resource: ctx.realm,
         severity: weak.length ? "high" : "low",
         status: weak.length ? "warn" : "pass",
@@ -48,25 +42,16 @@ export const keysCheck: Check = {
           : `Active signature keys: ${
               sigKeys.map((k) => k.algorithm).join(", ") || "(none)"
             }.`,
-        recommendation:
-          "Use a strong asymmetric signature (RS256/ES256). Avoid HS256 shared across clients.",
-        references: [DOC],
       }),
     );
 
     // --- At least one active key ------------------------------------------
     out.push(
-      finding({
-        id: "keys.active-present",
-        title: "Active signature key",
-        category: CAT,
+      finding("keys.active-present", {
         resource: ctx.realm,
         severity: "high",
         status: sigKeys.length > 0 ? "pass" : "fail",
         detail: `${sigKeys.length} active signature key(s).`,
-        recommendation:
-          "Verify regular rotation of the realm's signature keys.",
-        references: [DOC],
       }),
     );
 

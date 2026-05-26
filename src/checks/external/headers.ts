@@ -1,58 +1,32 @@
 import type { Check, Finding } from "../../types.js";
 import { finding } from "../helpers.js";
+import { headerRules, type ExpectRule } from "../registry.js";
 import { safeFetch, dispatcherFor } from "../../http.js";
 
-const CAT = "HTTP Headers";
-
-interface HeaderRule {
-  header: string;
-  id: string;
-  title: string;
-  severity: "high" | "medium" | "low";
-  expected?: (value: string) => boolean;
-  recommendation: string;
+/** Evaluates a header value against its declarative expectation from the config. */
+export function meetsExpectation(value: string, expect?: ExpectRule): boolean {
+  if (!expect) return true; // presence alone is enough
+  if (
+    expect.equals !== undefined &&
+    value.toLowerCase() !== expect.equals.toLowerCase()
+  ) {
+    return false;
+  }
+  if (expect.regex !== undefined) {
+    let re: RegExp;
+    try {
+      re = new RegExp(expect.regex, "i");
+    } catch {
+      return false; // invalid regex in config -> treat as not satisfied
+    }
+    if (!re.test(value)) return false;
+  }
+  if (expect.minMaxAge !== undefined) {
+    const m = value.match(/max-age=(\d+)/i);
+    if (!m || Number(m[1]) < expect.minMaxAge) return false;
+  }
+  return true;
 }
-
-const RULES: HeaderRule[] = [
-  {
-    header: "strict-transport-security",
-    id: "headers.hsts",
-    title: "Strict-Transport-Security (HSTS)",
-    severity: "medium",
-    expected: (v) => /max-age=\d+/.test(v) && Number(v.match(/max-age=(\d+)/)?.[1] ?? 0) >= 31536000,
-    recommendation: "Add HSTS with max-age >= 31536000 (1 year).",
-  },
-  {
-    header: "x-content-type-options",
-    id: "headers.x-content-type",
-    title: "X-Content-Type-Options",
-    severity: "low",
-    expected: (v) => v.toLowerCase() === "nosniff",
-    recommendation: "Set X-Content-Type-Options: nosniff.",
-  },
-  {
-    header: "x-frame-options",
-    id: "headers.x-frame-options",
-    title: "X-Frame-Options",
-    severity: "medium",
-    expected: (v) => /sameorigin|deny/i.test(v),
-    recommendation: "Set X-Frame-Options: SAMEORIGIN (anti-clickjacking).",
-  },
-  {
-    header: "content-security-policy",
-    id: "headers.csp",
-    title: "Content-Security-Policy",
-    severity: "medium",
-    recommendation: "Serve a restrictive CSP including frame-ancestors.",
-  },
-  {
-    header: "referrer-policy",
-    id: "headers.referrer-policy",
-    title: "Referrer-Policy",
-    severity: "low",
-    recommendation: "Set a Referrer-Policy (e.g. no-referrer or strict-origin).",
-  },
-];
 
 export const headersCheck: Check = {
   name: "headers",
@@ -66,10 +40,7 @@ export const headersCheck: Check = {
 
     if ("error" in res) {
       return [
-        finding({
-          id: "headers.fetch",
-          title: "Header retrieval",
-          category: CAT,
+        finding("headers.fetch", {
           severity: "info",
           status: "error",
           detail: `Request failed: ${res.error}.`,
@@ -78,21 +49,18 @@ export const headersCheck: Check = {
       ];
     }
 
-    return RULES.map((rule) => {
+    // Header rules are defined entirely in checks.yaml (id, header, severity, expect).
+    return headerRules().map((rule) => {
       const value = res.headers.get(rule.header);
       const present = value !== null;
-      const ok = present && (rule.expected ? rule.expected(value) : true);
-      return finding({
-        id: rule.id,
-        title: rule.title,
-        category: CAT,
+      const ok = present && meetsExpectation(value, rule.expect);
+      return finding(rule.id, {
         resource: ctx.baseUrl,
         severity: rule.severity,
         status: ok ? "pass" : present ? "warn" : "fail",
         detail: present
           ? `Present: "${value}".`
           : "Header missing from the response.",
-        recommendation: rule.recommendation,
       });
     });
   },

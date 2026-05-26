@@ -2,8 +2,6 @@ import tls from "node:tls";
 import type { Check, Finding } from "../../types.js";
 import { finding } from "../helpers.js";
 
-const CAT = "TLS / Network";
-
 interface TlsInfo {
   protocol: string | null;
   authorized: boolean;
@@ -52,15 +50,11 @@ export const tlsCheck: Check = {
 
     if (u.protocol !== "https:") {
       out.push(
-        finding({
-          id: "tls.https",
-          title: "HTTPS on the endpoint",
-          category: CAT,
+        finding("tls.https", {
           resource: ctx.baseUrl,
           severity: "critical",
           status: "fail",
           detail: "The server is exposed over plaintext HTTP.",
-          recommendation: "Serve Keycloak exclusively over HTTPS.",
         }),
       );
       return out;
@@ -72,10 +66,7 @@ export const tlsCheck: Check = {
       info = await inspectTls(u.hostname, port);
     } catch (err) {
       out.push(
-        finding({
-          id: "tls.connect",
-          title: "TLS connection",
-          category: CAT,
+        finding("tls.connect", {
           resource: ctx.baseUrl,
           severity: "info",
           status: "error",
@@ -91,47 +82,34 @@ export const tlsCheck: Check = {
     const proto = info.protocol ?? "unknown";
     const weak = proto === "TLSv1" || proto === "TLSv1.1" || proto === "SSLv3";
     out.push(
-      finding({
-        id: "tls.version",
-        title: "TLS protocol version",
-        category: CAT,
+      finding("tls.version", {
         resource: u.hostname,
         severity: weak ? "high" : "low",
         status: weak ? "fail" : "pass",
         detail: `Negotiated protocol: ${proto}.`,
-        recommendation: "Disable TLS < 1.2; aim for TLS 1.2/1.3 only.",
       }),
     );
 
     // --- Certificate validity ---------------------------------------------
     out.push(
-      finding({
-        id: "tls.cert-valid",
-        title: "Trusted TLS certificate",
-        category: CAT,
+      finding("tls.cert-valid", {
         resource: u.hostname,
         severity: info.authorized ? "low" : "high",
         status: info.authorized ? "pass" : "warn",
         detail: info.authorized
           ? `Valid certificate (expires in ${info.daysToExpiry} days).`
           : `Unverified certificate: ${info.authError ?? "unknown"}.`,
-        recommendation:
-          "Use a certificate issued by a recognized CA and not expired.",
       }),
     );
 
     // --- Near expiry ------------------------------------------------------
     if (info.daysToExpiry !== undefined && info.daysToExpiry < 30) {
       out.push(
-        finding({
-          id: "tls.cert-expiry",
-          title: "Certificate expiry",
-          category: CAT,
+        finding("tls.cert-expiry", {
           resource: u.hostname,
           severity: info.daysToExpiry < 7 ? "high" : "medium",
           status: "warn",
           detail: `The certificate expires in ${info.daysToExpiry} day(s).`,
-          recommendation: "Renew the certificate / automate renewal.",
         }),
       );
     }
